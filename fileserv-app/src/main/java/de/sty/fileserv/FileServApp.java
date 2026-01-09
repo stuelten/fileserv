@@ -16,6 +16,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.Random;
 import java.util.concurrent.Callable;
 
 // version is set by maven via filtering
@@ -141,8 +142,10 @@ public class FileServApp implements Callable<Integer> {
         }
 
         if (authenticators.isEmpty()) {
-            authenticators.add(new SimpleAuthenticator("alice", "secret"));
-            LOG.info("No authentication configured. Using default: alice:secret");
+            int randomPassword = 100000 + new Random().nextInt(900000);
+            String password = String.valueOf(randomPassword);
+            authenticators.add(new SimpleAuthenticator("demo", password));
+            LOG.info("No authentication configured. Using user 'demo', password '{}'", password);
         }
 
         return new MultiAuthenticator(authenticators);

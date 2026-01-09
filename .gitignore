@@ -1,2 +1,7 @@
 .idea
+data
+
 **/target/
+
+/keystore.p12
+/passwords.txt
