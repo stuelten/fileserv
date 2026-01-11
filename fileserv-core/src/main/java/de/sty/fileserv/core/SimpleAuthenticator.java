@@ -1,6 +1,14 @@
 package de.sty.fileserv.core;
 
-public final class SimpleAuthenticator implements Authenticator {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Simple authenticator for one user and password.
+ */
+public class SimpleAuthenticator implements Authenticator {
+    private static final Logger LOG = LoggerFactory.getLogger(SimpleAuthenticator.class);
+
     private final String expectedUser;
     private final String expectedPass;
 
@@ -11,6 +19,9 @@ public final class SimpleAuthenticator implements Authenticator {
 
     @Override
     public boolean authenticate(String user, String password) {
-        return expectedUser.equals(user) && expectedPass.equals(password);
+        boolean matches = expectedUser.equals(user) && expectedPass.equals(password);
+        LOG.trace("Authenticating user={}: {}", user, matches);
+        return matches;
     }
+
 }

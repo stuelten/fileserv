@@ -47,14 +47,14 @@ public final class WebDavServer {
             httpConfig.addCustomizer(new ForwardedRequestCustomizer());
         }
 
-        if (cfg.httpPort > 0) {
+        if (cfg.httpPort >= 0) {
             ServerConnector http = new ServerConnector(server, new HttpConnectionFactory(httpConfig));
             http.setPort(cfg.httpPort);
             server.addConnector(http);
             LOG.info("Added HTTP connector on port {}", cfg.httpPort);
         }
 
-        if (cfg.httpsPort > 0) {
+        if (cfg.httpsPort >= 0) {
             HttpConfiguration httpsConfig = new HttpConfiguration(httpConfig);
             httpsConfig.addCustomizer(new SecureRequestCustomizer());
 

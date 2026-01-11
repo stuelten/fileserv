@@ -1,8 +1,16 @@
 package de.sty.fileserv.core;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 
-public final class MultiAuthenticator implements Authenticator {
+/**
+ * Authenticates against multiple authenticators.
+ */
+public class MultiAuthenticator implements Authenticator {
+    private static final Logger LOG = LoggerFactory.getLogger(MultiAuthenticator.class);
+
     private final List<Authenticator> authenticators;
 
     public MultiAuthenticator(List<Authenticator> authenticators) {
@@ -15,8 +23,9 @@ public final class MultiAuthenticator implements Authenticator {
 
     @Override
     public boolean authenticate(String user, String password) {
-        for (Authenticator auth : authenticators) {
-            if (auth.authenticate(user, password)) {
+        for (Authenticator authenticator : authenticators) {
+            if (authenticator.authenticate(user, password)) {
+                LOG.debug("User '{}' authenticated by '{}'", user, authenticator);
                 return true;
             }
         }

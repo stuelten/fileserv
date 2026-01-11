@@ -24,10 +24,11 @@ import java.util.concurrent.Callable;
         versionProvider = FileServApp.VersionProvider.class,
         description = "A simple WebDAV server.")
 public class FileServApp implements Callable<Integer> {
-
     private static final Logger LOG = LoggerFactory.getLogger(FileServApp.class);
 
-    /** The version of this app */
+    /**
+     * The version of this app
+     */
     public static final String VERSION = de.sty.fileserv.core.FileServVersion.VERSION;
 
     @Option(names = {"--config"}, description = "Path to a configuration properties file", defaultValue = "fileserv.properties")
@@ -35,9 +36,9 @@ public class FileServApp implements Callable<Integer> {
 
     @Parameters(index = "0", description = "Data directory to serve", defaultValue = "./data")
     Path root;
-    @Option(names = {"--https-port"}, description = "HTTPS port", defaultValue = "8443")
+    @Option(names = {"--https-port"}, description = "HTTPS port (set to -1 to disable)", defaultValue = "8443")
     int httpsPort;
-    @Option(names = {"--http-port"}, description = "HTTP port (set to 0 to disable)", defaultValue = "8080")
+    @Option(names = {"--http-port"}, description = "HTTP port (set to -1 to disable)", defaultValue = "8080")
     int httpPort;
     @Option(names = {"-u", "--user"}, description = "User name for authentication. Must followed by password.")
     private List<String> users;
@@ -57,6 +58,8 @@ public class FileServApp implements Callable<Integer> {
 
     @Option(names = {"--passwd"}, description = "Path to a passwords file")
     private Path passwordsPath;
+
+    private Server server;
 
     public static void main(String[] args) {
         FileServApp app = new FileServApp();
@@ -92,11 +95,15 @@ public class FileServApp implements Callable<Integer> {
                 authenticator
         );
 
-        Server server = WebDavServer.build(cfg);
+        server = WebDavServer.build(cfg);
 
         LOG.info("Starting FileServ with configuration:");
-        LOG.info("  HTTPS: {}://localhost:{}/", "https", httpsPort);
-        if (httpPort > 0) {
+        if (httpsPort >= 0) {
+            LOG.info("  HTTPS: {}://localhost:{}/", "https", httpsPort);
+        } else {
+            LOG.info("  HTTPS: disabled");
+        }
+        if (httpPort >= 0) {
             LOG.info("  HTTP : {}://localhost:{}/", "http", httpPort);
         } else {
             LOG.info("  HTTP : disabled");
@@ -110,6 +117,16 @@ public class FileServApp implements Callable<Integer> {
         server.join();
 
         return 0;
+    }
+
+    public void stop() throws Exception {
+        if (server != null) {
+            server.stop();
+        }
+    }
+
+    public Server getServer() {
+        return server;
     }
 
     /**

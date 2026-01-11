@@ -86,8 +86,8 @@ class HttpsSmokeTest {
         server = WebDavServer.build(new WebDavServer.Config(
                 tempDir,
                 false,     // not behind proxy; we want actual TLS termination in Java
+                -1,
                 0,
-                8443,
                 ks,
                 "changeit",
                 "changeit",
@@ -95,9 +95,17 @@ class HttpsSmokeTest {
         ));
 
         server.start();
-        int port = ((ServerConnector) server.getConnectors()[0]).getLocalPort(); // 8443 (or actual)
+        int httpsActualPort = 0;
+        for (var connector : server.getConnectors()) {
+            if (connector instanceof ServerConnector sc) {
+                if (sc.getProtocols().contains("ssl")) {
+                    httpsActualPort = sc.getLocalPort();
+                    break;
+                }
+            }
+        }
 
-        base = URI.create("https://localhost:" + port + "/");
+        base = URI.create("https://localhost:" + httpsActualPort + "/");
 
         client = HttpClient.newBuilder()
                 .sslContext(insecureSslContext())

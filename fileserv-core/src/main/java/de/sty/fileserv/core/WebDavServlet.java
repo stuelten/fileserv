@@ -127,8 +127,8 @@ public class WebDavServlet extends HttpServlet {
     }
 
     // --- WebDAV methods --------------------------------------------------------
-
-    private void doMkCol(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    
+    protected void doMkCol(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Path p = resolve(req);
         if (!checkWriteLock(req, resp, p)) return;
 
@@ -137,7 +137,7 @@ public class WebDavServlet extends HttpServlet {
         resp.setStatus(201);
     }
 
-    private void doMove(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doMove(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Path src = resolve(req);
         if (!checkWriteLock(req, resp, src)) return;
         Path dst = resolveDestination(req, resp);
@@ -148,7 +148,7 @@ public class WebDavServlet extends HttpServlet {
         resp.setStatus(201);
     }
 
-    private void doCopy(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doCopy(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Path src = resolve(req);
         Path dst = resolveDestination(req, resp);
         if (dst == null) return;
@@ -173,7 +173,7 @@ public class WebDavServlet extends HttpServlet {
         resp.setStatus(201);
     }
 
-    private void doPropFind(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doPropFind(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Path p = resolve(req);
         if (!Files.exists(p)) { resp.sendError(404); return; }
 
@@ -205,7 +205,7 @@ public class WebDavServlet extends HttpServlet {
         resp.getWriter().write(xml.toString());
     }
 
-    private void doLock(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doLock(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Path p = resolve(req);
         // LOCK is also used to create lock on non-existing resources (lock-null resources).
         // For simplicity: ensure parent exists; file may be created later by PUT.
@@ -240,7 +240,7 @@ public class WebDavServlet extends HttpServlet {
         resp.getWriter().write(body);
     }
 
-    private void doUnlock(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doUnlock(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Path p = resolve(req);
         String token = extractLockToken(req.getHeader("Lock-Token"));
         if (token == null) { resp.sendError(400, "Missing Lock-Token"); return; }
@@ -253,7 +253,7 @@ public class WebDavServlet extends HttpServlet {
 
     // --- Helpers ---------------------------------------------------------------
 
-    private Path resolve(HttpServletRequest req) {
+    protected Path resolve(HttpServletRequest req) {
         String raw = Optional.ofNullable(req.getPathInfo()).orElse("/");
         String decoded = URLDecoder.decode(raw, StandardCharsets.UTF_8);
         // prevent .. traversal
@@ -262,7 +262,7 @@ public class WebDavServlet extends HttpServlet {
         return p;
     }
 
-    private Path resolveDestination(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected Path resolveDestination(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String dest = req.getHeader("Destination");
         if (dest == null) { resp.sendError(400, "Missing Destination"); return null; }
 
@@ -313,7 +313,7 @@ public class WebDavServlet extends HttpServlet {
         return href;
     }
 
-    private String propResponse(HttpServletRequest req, Path p, String href) throws IOException {
+    protected String propResponse(HttpServletRequest req, Path p, String href) throws IOException {
         boolean dir = Files.isDirectory(p);
         long size = dir ? 0 : Files.size(p);
 
@@ -344,7 +344,7 @@ public class WebDavServlet extends HttpServlet {
         return sb.toString();
     }
 
-    private boolean checkWriteLock(HttpServletRequest req, HttpServletResponse resp, Path p) throws IOException {
+    protected boolean checkWriteLock(HttpServletRequest req, HttpServletResponse resp, Path p) throws IOException {
         // If the resource is locked, require correct token in If: or Lock-Token:
         var lockOpt = locks.getActiveLock(pathKey(p));
         if (lockOpt.isEmpty()) return true;
@@ -361,12 +361,12 @@ public class WebDavServlet extends HttpServlet {
         return false;
     }
 
-    private static boolean containsToken(String ifHeader, String token) {
+    protected static boolean containsToken(String ifHeader, String token) {
         if (ifHeader == null) return false;
         return ifHeader.contains(token);
     }
 
-    private static String extractLockToken(String headerVal) {
+    protected static String extractLockToken(String headerVal) {
         if (headerVal == null) return null;
         // formats: <opaquelocktoken:...>
         String s = headerVal.trim();
@@ -374,7 +374,7 @@ public class WebDavServlet extends HttpServlet {
         return s;
     }
 
-    private static int parseDepth(String depth) {
+    protected static int parseDepth(String depth) {
         if (depth == null) return 0;
         String d = depth.trim().toLowerCase(Locale.ROOT);
         if ("infinity".equals(d)) return Integer.MAX_VALUE;
@@ -384,7 +384,7 @@ public class WebDavServlet extends HttpServlet {
         }
     }
 
-    private static long parseTimeoutSeconds(String timeout) {
+    protected static long parseTimeoutSeconds(String timeout) {
         if (timeout == null) return 600;
         // formats: Second-600, Infinite
         String t = timeout.trim();
@@ -398,7 +398,7 @@ public class WebDavServlet extends HttpServlet {
         return 600;
     }
 
-    private static String parseLockOwner(HttpServletRequest req) {
+    protected static String parseLockOwner(HttpServletRequest req) {
         // Try to parse <D:owner> from LOCK request body (optional)
         if (req.getContentLength() == 0) {
             return "";
@@ -434,11 +434,11 @@ public class WebDavServlet extends HttpServlet {
         return "";
     }
 
-    private static Instant lastModified(Path p) throws IOException {
+    protected static Instant lastModified(Path p) throws IOException {
         return Files.getLastModifiedTime(p).toInstant();
     }
 
-    private static String etag(Path p) throws IOException {
+    protected static String etag(Path p) throws IOException {
         // cheap ETag: size + mtime
         if (!Files.exists(p) || Files.isDirectory(p)) return "\"dir\"";
         long size = Files.size(p);
@@ -446,12 +446,12 @@ public class WebDavServlet extends HttpServlet {
         return "\"" + size + "-" + lm + "\"";
     }
 
-    private static String escapeXml(String s) {
+    protected static String escapeXml(String s) {
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                 .replace("\"", "&quot;").replace("'", "&apos;");
     }
 
-    private static String pathKey(Path p) {
+    protected static String pathKey(Path p) {
         // stable lock key for resource
         return p.toAbsolutePath().normalize().toString().replace('\\', '/');
     }
