@@ -16,6 +16,7 @@
         <module>fileserv-core</module>
         <module>fileserv-ldap</module>
         <module>fileserv-app</module>
+        <module>fileserv-test-webdav</module>
     </modules>
 
     <properties>
