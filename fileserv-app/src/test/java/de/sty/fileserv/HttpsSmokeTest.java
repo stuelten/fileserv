@@ -1,6 +1,7 @@
 package de.sty.fileserv;
 
 import de.sty.fileserv.core.Authenticator;
+import de.sty.fileserv.core.FileServConfig;
 import de.sty.fileserv.core.SimpleAuthenticator;
 import de.sty.fileserv.core.WebDavServer;
 import org.eclipse.jetty.server.Server;
@@ -13,7 +14,6 @@ import org.junit.jupiter.api.io.TempDir;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -24,6 +24,7 @@ import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
 
+import static de.sty.fileserv.core.WebDavConstants.AUTH_PREFIX_BASIC;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.jetty.http.HttpStatus.*;
 
@@ -79,11 +80,11 @@ class HttpsSmokeTest {
 
     @BeforeEach
     void start() throws Exception {
-        auth = "Basic " + Base64.getEncoder().encodeToString("alice:secret".getBytes(StandardCharsets.UTF_8));
+        auth = AUTH_PREFIX_BASIC + Base64.getEncoder().encodeToString("alice:secret".getBytes(StandardCharsets.UTF_8));
 
         String ks = generateTemporaryKeystore(tempDir);
         Authenticator authenticator = new SimpleAuthenticator("alice", "secret");
-        server = WebDavServer.build(new WebDavServer.Config(
+        server = WebDavServer.build(new FileServConfig(
                 tempDir,
                 false,     // not behind proxy; we want actual TLS termination in Java
                 -1,

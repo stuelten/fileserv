@@ -35,7 +35,7 @@ public class FileServApp implements Callable<Integer> {
     Path configFile;
 
     @Parameters(index = "0", description = "Data directory to serve", defaultValue = "./data")
-    Path root;
+    Path dataDir;
     @Option(names = {"--https-port"}, description = "HTTPS port (set to -1 to disable)", defaultValue = "8443")
     int httpsPort;
     @Option(names = {"--http-port"}, description = "HTTP port (set to -1 to disable)", defaultValue = "8080")
@@ -61,7 +61,9 @@ public class FileServApp implements Callable<Integer> {
 
     private Server server;
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
+        LOG.info("Starting FileServ {}...", VERSION);
+
         FileServApp app = new FileServApp();
         CommandLine cmd = new CommandLine(app);
 
@@ -72,6 +74,7 @@ public class FileServApp implements Callable<Integer> {
         cmd.setDefaultValueProvider(new PropertiesDefaultProvider(configPath));
 
         int exitCode = cmd.execute(args);
+        LOG.info("FileServ stopped.");
         System.exit(exitCode);
     }
 
@@ -79,13 +82,13 @@ public class FileServApp implements Callable<Integer> {
     public Integer call() throws Exception {
         Authenticator authenticator = createAuthenticator();
 
-        root = root.toAbsolutePath().normalize();
+        dataDir = dataDir.toAbsolutePath().normalize();
         if (keyPassword == null) {
             keyPassword = keyStorePassword;
         }
 
-        WebDavServer.Config cfg = new WebDavServer.Config(
-                root,
+        FileServConfig cfg = new FileServConfig(
+                dataDir,
                 behindProxy,
                 httpPort,
                 httpsPort,
@@ -108,12 +111,12 @@ public class FileServApp implements Callable<Integer> {
         } else {
             LOG.info("  HTTP : disabled");
         }
-        LOG.info("  Root: {}", root);
+        LOG.info("  DataDir: {}", dataDir);
         LOG.info("  Auth: {}", authenticator);
         LOG.info("  behindProxy={}", behindProxy);
 
         server.start();
-        LOG.info("Jetty server started.");
+        LOG.info("File server runs...");
         server.join();
 
         return 0;
@@ -121,6 +124,7 @@ public class FileServApp implements Callable<Integer> {
 
     public void stop() throws Exception {
         if (server != null) {
+            LOG.info("Stopping FileServ...");
             server.stop();
         }
     }
@@ -137,12 +141,11 @@ public class FileServApp implements Callable<Integer> {
 
         Path passwdFile = passwordsPath;
         if (passwdFile == null) {
-            Path defaultPasswd = Paths.get("passwd");
+            Path defaultPasswd = Paths.get("fileserv-passwd");
             if (Files.exists(defaultPasswd)) {
                 passwdFile = defaultPasswd;
             }
         }
-
         if (passwdFile != null) {
             authenticators.add(new FileAuthenticator(passwdFile));
             LOG.info("AUTH: Use usernames/passwords from file: {}", passwdFile);
@@ -154,15 +157,16 @@ public class FileServApp implements Callable<Integer> {
                 String u = users.get(i);
                 String p = (passwords != null && i < passwords.size()) ? passwords.get(i) : "";
                 authenticators.add(new SimpleAuthenticator(u, p));
-                LOG.info("Added authentication for user: {}", u);
+                LOG.info("AUTH: Added authentication for user: {}", u);
             }
         }
 
         if (authenticators.isEmpty()) {
+            // Use Password between 100000 and 999999 to avoid leading zeros
             int randomPassword = 100000 + new Random().nextInt(900000);
             String password = String.valueOf(randomPassword);
             authenticators.add(new SimpleAuthenticator("demo", password));
-            LOG.info("No authentication configured. Using user 'demo', password '{}'", password);
+            LOG.info("AUTH: No authentication configured. Using user 'demo', password '{}'", password);
         }
 
         return new MultiAuthenticator(authenticators);

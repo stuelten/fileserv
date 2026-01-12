@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
@@ -32,7 +31,7 @@ class WebDavServletTest {
     void setUp() throws Exception {
         servlet = new WebDavServlet();
         TestServletConfig config = new TestServletConfig();
-        config.initParams.put("root", tempDir.toString());
+        config.initParams.put(WebDavServlet.DATA_DIR, tempDir.toString());
         servlet.init(config);
     }
 

@@ -1,6 +1,7 @@
 package de.sty.fileserv;
 
 import de.sty.fileserv.core.Authenticator;
+import de.sty.fileserv.core.FileServConfig;
 import de.sty.fileserv.core.SimpleAuthenticator;
 import de.sty.fileserv.core.WebDavServer;
 import org.eclipse.jetty.http.HttpStatus;
@@ -19,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Base64;
 
+import static de.sty.fileserv.core.WebDavConstants.AUTH_PREFIX_BASIC;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class WebDavClientFlowsTest {
@@ -33,9 +35,9 @@ class WebDavClientFlowsTest {
 
     @BeforeEach
     void start() throws Exception {
-        auth = "Basic " + Base64.getEncoder().encodeToString("alice:secret".getBytes(StandardCharsets.UTF_8));
+        auth = AUTH_PREFIX_BASIC + Base64.getEncoder().encodeToString("alice:secret".getBytes(StandardCharsets.UTF_8));
         Authenticator authenticator = new SimpleAuthenticator("alice", "secret");
-        server = WebDavServer.build(new WebDavServer.Config(
+        server = WebDavServer.build(new FileServConfig(
                 tempDir,
                 true,   // behindProxy
                 0,
@@ -62,7 +64,7 @@ class WebDavClientFlowsTest {
 
     @Test
     void macOsLike_flow_directory_open_404_put_get_mkcol_copy_get_cleanup() throws Exception {
-        // 1. open a directory (PROPFIND on root, Depth: 1)
+        // 1. open a directory (PROPFIND on dataDir, Depth: 1)
         var propfind = HttpRequest.newBuilder(base)
                 .header("Authorization", auth)
                 .header("X-Forwarded-Proto", "https")
@@ -154,7 +156,7 @@ class WebDavClientFlowsTest {
     @Test
     void windowsLike_flow_directory_open_404_put_get_mkcol_copy_get_cleanup() throws Exception {
         // Simulate Windows WebDAV style: often uses PROPFIND Depth: 0 then 1 and COPY with Overwrite: T
-        // 1. PROPFIND Depth:0 on root
+        // 1. PROPFIND Depth:0 on dataDir
         var prop0 = HttpRequest.newBuilder(base)
                 .header("Authorization", auth)
                 .header("X-Forwarded-Proto", "https")

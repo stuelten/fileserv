@@ -24,4 +24,8 @@ public class SimpleAuthenticator implements Authenticator {
         return matches;
     }
 
+    @Override
+    public String toString() {
+        return "SimpleAuthenticator[user=" + expectedUser + "]";
+    }
 }

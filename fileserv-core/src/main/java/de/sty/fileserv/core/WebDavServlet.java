@@ -15,27 +15,41 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import static de.sty.fileserv.core.WebDavConstants.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
+/**
+ * WebDAV servlet implementation. Does the heavy lifting.
+ */
 public class WebDavServlet extends HttpServlet {
 
     private static final Logger LOG = LoggerFactory.getLogger(WebDavServlet.class);
-    private Path root;
+
+    /** The parameter used in ServletConfig for {@link #dataDir}. */
+    public static final String DATA_DIR = "data";
+
+    /** The directory to serve */
+    protected Path dataDir;
+
+    /** Holds all locks in memory. */
     private final LockManager locks = new LockManager();
 
-    private static final DateTimeFormatter HTTP_DATE =
+    protected static final DateTimeFormatter HTTP_DATE =
             DateTimeFormatter.RFC_1123_DATE_TIME.withZone(ZoneOffset.UTC);
+
 
     @Override
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
-        String r = Objects.requireNonNull(config.getInitParameter("root"), "init-param 'root' required");
-        root = Path.of(r).toAbsolutePath().normalize();
+        String r = Objects.requireNonNull(config.getInitParameter(DATA_DIR),
+                "init-param '" + DATA_DIR + "' required");
+        dataDir = Path.of(r).toAbsolutePath().normalize();
         try {
-            Files.createDirectories(root);
+            Files.createDirectories(dataDir);
         } catch (IOException e) {
             throw new ServletException(e);
         }
@@ -46,33 +60,35 @@ public class WebDavServlet extends HttpServlet {
     @Override protected void service(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
         String method = req.getMethod();
         switch (method) {
-            case "OPTIONS" -> doOptions(req, resp);
-            case "PROPFIND" -> doPropFind(req, resp);
-            case "MKCOL" -> doMkCol(req, resp);
-            case "MOVE" -> doMove(req, resp);
-            case "COPY" -> doCopy(req, resp);
-            case "LOCK" -> doLock(req, resp);
-            case "UNLOCK" -> doUnlock(req, resp);
+            case METHOD_OPTIONS  -> doOptions(req, resp);
+            case METHOD_PROPFIND -> doPropFind(req, resp);
+            case METHOD_MKCOL    -> doMkCol(req, resp);
+            case METHOD_MOVE     -> doMove(req, resp);
+            case METHOD_COPY     -> doCopy(req, resp);
+            case METHOD_LOCK     -> doLock(req, resp);
+            case METHOD_UNLOCK   -> doUnlock(req, resp);
             default -> super.service(req, resp); // GET/HEAD/PUT/DELETE handled by overrides
         }
     }
 
     @Override protected void doOptions(HttpServletRequest req, HttpServletResponse resp) {
-        resp.setStatus(200);
-        resp.setHeader("DAV", "1,2");                 // advertise Class 2
-        resp.setHeader("MS-Author-Via", "DAV");       // helps some MS clients
-        resp.setHeader("Allow",
-                "OPTIONS, PROPFIND, GET, HEAD, PUT, DELETE, MKCOL, MOVE, COPY, LOCK, UNLOCK");
+        resp.setStatus(SC_200_OK);
+        resp.setHeader(HEADER_DAV, "1,2");                 // advertise Class 2
+        resp.setHeader(HEADER_MS_AUTHOR_VIA, HEADER_DAV);       // helps some MS clients
+        resp.setHeader(HEADER_ALLOW,
+                METHOD_OPTIONS + ", " + METHOD_PROPFIND + ", " + METHOD_GET + ", " + METHOD_HEAD + ", " +
+                METHOD_PUT + ", " + METHOD_DELETE + ", " + METHOD_MKCOL + ", " + METHOD_MOVE + ", " +
+                METHOD_COPY + ", " + METHOD_LOCK + ", " + METHOD_UNLOCK);
     }
 
     @Override protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Path p = resolve(req);
-        if (!Files.exists(p)) { resp.sendError(404); return; }
-        if (Files.isDirectory(p)) { resp.sendError(405); return; }
+        if (!Files.exists(p)) { resp.sendError(SC_404_NOT_FOUND); return; }
+        if (Files.isDirectory(p)) { resp.sendError(SC_405_METHOD_NOT_ALLOWED); return; }
 
-        resp.setStatus(200);
-        resp.setHeader("ETag", etag(p));
-        resp.setHeader("Last-Modified", HTTP_DATE.format(lastModified(p)));
+        resp.setStatus(SC_200_OK);
+        resp.setHeader(HEADER_ETAG, etag(p));
+        resp.setHeader(HEADER_LAST_MODIFIED, HTTP_DATE.format(lastModified(p)));
         resp.setContentLengthLong(Files.size(p));
 
         try (InputStream in = Files.newInputStream(p); OutputStream out = resp.getOutputStream()) {
@@ -82,12 +98,12 @@ public class WebDavServlet extends HttpServlet {
 
     @Override protected void doHead(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Path p = resolve(req);
-        if (!Files.exists(p)) { resp.sendError(404); return; }
-        if (Files.isDirectory(p)) { resp.sendError(405); return; }
+        if (!Files.exists(p)) { resp.sendError(SC_404_NOT_FOUND); return; }
+        if (Files.isDirectory(p)) { resp.sendError(SC_405_METHOD_NOT_ALLOWED); return; }
 
-        resp.setStatus(200);
-        resp.setHeader("ETag", etag(p));
-        resp.setHeader("Last-Modified", HTTP_DATE.format(lastModified(p)));
+        resp.setStatus(SC_200_OK);
+        resp.setHeader(HEADER_ETAG, etag(p));
+        resp.setHeader(HEADER_LAST_MODIFIED, HTTP_DATE.format(lastModified(p)));
         resp.setContentLengthLong(Files.size(p));
     }
 
@@ -102,14 +118,14 @@ public class WebDavServlet extends HttpServlet {
             Files.copy(in, p, StandardCopyOption.REPLACE_EXISTING);
         }
 
-        resp.setStatus(existed ? 204 : 201);
+        resp.setStatus(existed ? SC_204_NO_CONTENT : SC_201_CREATED);
     }
 
     @Override protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Path p = resolve(req);
         if (!checkWriteLock(req, resp, p)) return;
 
-        if (!Files.exists(p)) { resp.sendError(404); return; }
+        if (!Files.exists(p)) { resp.sendError(SC_404_NOT_FOUND); return; }
         if (Files.isDirectory(p)) {
             // recursive delete
             Files.walkFileTree(p, new SimpleFileVisitor<>() {
@@ -123,18 +139,18 @@ public class WebDavServlet extends HttpServlet {
         } else {
             Files.deleteIfExists(p);
         }
-        resp.setStatus(204);
+        resp.setStatus(SC_204_NO_CONTENT);
     }
 
     // --- WebDAV methods --------------------------------------------------------
-    
+
     protected void doMkCol(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Path p = resolve(req);
         if (!checkWriteLock(req, resp, p)) return;
 
-        if (Files.exists(p)) { resp.sendError(405); return; }
+        if (Files.exists(p)) { resp.sendError(SC_405_METHOD_NOT_ALLOWED); return; }
         Files.createDirectories(p);
-        resp.setStatus(201);
+        resp.setStatus(SC_201_CREATED);
     }
 
     protected void doMove(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -145,7 +161,7 @@ public class WebDavServlet extends HttpServlet {
 
         Files.createDirectories(dst.getParent());
         Files.move(src, dst, StandardCopyOption.REPLACE_EXISTING);
-        resp.setStatus(201);
+        resp.setStatus(SC_201_CREATED);
     }
 
     protected void doCopy(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -170,25 +186,25 @@ public class WebDavServlet extends HttpServlet {
             Files.createDirectories(dst.getParent());
             Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING);
         }
-        resp.setStatus(201);
+        resp.setStatus(SC_201_CREATED);
     }
 
     protected void doPropFind(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Path p = resolve(req);
-        if (!Files.exists(p)) { resp.sendError(404); return; }
+        if (!Files.exists(p)) { resp.sendError(SC_404_NOT_FOUND); return; }
 
-        int depth = parseDepth(req.getHeader("Depth")); // 0 or 1 enough for Finder/Explorer listing
+        int depth = parseDepth(req.getHeader(HEADER_DEPTH)); // 0 or 1 enough for Finder/Explorer listing
         String hrefBase = req.getRequestURL().toString();
         if (!hrefBase.endsWith("/")) {
             // keep consistent; for files it’s ok either way, for collections add slash in href generation
         }
 
-        resp.setStatus(207);
-        resp.setContentType("application/xml; charset=utf-8");
+        resp.setStatus(SC_207_MULTI_STATUS);
+        resp.setContentType(CONTENT_TYPE_XML);
 
         StringBuilder xml = new StringBuilder();
         xml.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>")
-                .append("<D:multistatus xmlns:D=\"DAV:\">");
+                .append("<D:multistatus xmlns:D=\"").append(DAV_NAMESPACE).append("\">");
 
         // self
         xml.append(propResponse(req, p, hrefFor(req, p)));
@@ -211,27 +227,28 @@ public class WebDavServlet extends HttpServlet {
         // For simplicity: ensure parent exists; file may be created later by PUT.
         Files.createDirectories(p.getParent());
 
-        long timeout = parseTimeoutSeconds(req.getHeader("Timeout"));
-        int depth = parseDepth(req.getHeader("Depth"));
+        long timeout = parseTimeoutSeconds(req.getHeader(HEADER_TIMEOUT));
+        int depth = parseDepth(req.getHeader(HEADER_DEPTH));
 
         String owner = parseLockOwner(req); // optional
         var lock = locks.createOrRefreshExclusiveLock(pathKey(p), owner, timeout, depth);
 
-        resp.setStatus(200);
-        resp.setHeader("DAV", "1,2");
-        resp.setHeader("Lock-Token", "<" + lock.token() + ">");
-        resp.setContentType("application/xml; charset=utf-8");
+        resp.setStatus(SC_200_OK);
+        resp.setHeader(HEADER_DAV, "1,2");
+        resp.setHeader(HEADER_LOCK_TOKEN, "<" + lock.token() + ">");
+        resp.setContentType(CONTENT_TYPE_XML);
 
         // Minimal lockdiscovery response
+        //noinspection ConcatenationWithEmptyString
         String body = ""
                 + "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
-                + "<D:prop xmlns:D=\"DAV:\">"
+                + "<D:prop xmlns:D=\"" + DAV_NAMESPACE + "\">"
                 + "  <D:lockdiscovery>"
                 + "    <D:activelock>"
                 + "      <D:locktype><D:write/></D:locktype>"
                 + "      <D:lockscope><D:exclusive/></D:lockscope>"
-                + "      <D:depth>" + (depth == Integer.MAX_VALUE ? "infinity" : depth) + "</D:depth>"
-                + "      <D:timeout>Second-" + timeout + "</D:timeout>"
+                + "      <D:depth>" + (depth == Integer.MAX_VALUE ? INFINITY : depth) + "</D:depth>"
+                + "      <D:timeout>" + TIMEOUT_SECOND + timeout + "</D:timeout>"
                 + "      <D:locktoken><D:href>" + lock.token() + "</D:href></D:locktoken>"
                 + "    </D:activelock>"
                 + "  </D:lockdiscovery>"
@@ -242,13 +259,13 @@ public class WebDavServlet extends HttpServlet {
 
     protected void doUnlock(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Path p = resolve(req);
-        String token = extractLockToken(req.getHeader("Lock-Token"));
-        if (token == null) { resp.sendError(400, "Missing Lock-Token"); return; }
+        String token = extractLockToken(req.getHeader(HEADER_LOCK_TOKEN));
+        if (token == null) { resp.sendError(SC_400_BAD_REQUEST, "Missing Lock-Token"); return; }
 
         boolean ok = locks.unlock(token, pathKey(p));
-        if (!ok) { resp.sendError(409, "Lock token mismatch"); return; }
+        if (!ok) { resp.sendError(SC_409_CONFLICT, "Lock token mismatch"); return; }
 
-        resp.setStatus(204);
+        resp.setStatus(SC_204_NO_CONTENT);
     }
 
     // --- Helpers ---------------------------------------------------------------
@@ -257,14 +274,14 @@ public class WebDavServlet extends HttpServlet {
         String raw = Optional.ofNullable(req.getPathInfo()).orElse("/");
         String decoded = URLDecoder.decode(raw, StandardCharsets.UTF_8);
         // prevent .. traversal
-        Path p = root.resolve(decoded.substring(1)).normalize();
-        if (!p.startsWith(root)) throw new IllegalArgumentException("Invalid path");
+        Path p = dataDir.resolve(decoded.substring(1)).normalize();
+        if (!p.startsWith(dataDir)) throw new IllegalArgumentException("Invalid path");
         return p;
     }
 
     protected Path resolveDestination(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        String dest = req.getHeader("Destination");
-        if (dest == null) { resp.sendError(400, "Missing Destination"); return null; }
+        String dest = req.getHeader(HEADER_DESTINATION);
+        if (dest == null) { resp.sendError(SC_400_BAD_REQUEST, "Missing Destination"); return null; }
 
         String pathPart = dest;
 
@@ -297,16 +314,16 @@ public class WebDavServlet extends HttpServlet {
             }
         }
 
-        Path p = root.resolve(decoded.startsWith("/") ? decoded.substring(1) : decoded).normalize();
-        if (!p.startsWith(root)) { resp.sendError(403); return null; }
+        Path p = dataDir.resolve(decoded.startsWith("/") ? decoded.substring(1) : decoded).normalize();
+        if (!p.startsWith(dataDir)) { resp.sendError(403); return null; }
         return p;
     }
 
     private String hrefFor(HttpServletRequest req, Path p) {
-        // build href relative to servlet root
+        // build href relative to servlet dataDir
         String ctx = req.getContextPath() == null ? "" : req.getContextPath();
         String base = ctx + "/";
-        Path rel = root.relativize(p);
+        Path rel = dataDir.relativize(p);
         String href = base + rel.toString().replace(File.separatorChar, '/');
         if (Files.isDirectory(p) && !href.endsWith("/")) href += "/";
         if (!href.startsWith("/")) href = "/" + href;
@@ -333,13 +350,13 @@ public class WebDavServlet extends HttpServlet {
             sb.append("<D:lockdiscovery><D:activelock>")
                     .append("<D:locktype><D:write/></D:locktype>")
                     .append("<D:lockscope><D:exclusive/></D:lockscope>")
-                    .append("<D:depth>").append(l.depth() == Integer.MAX_VALUE ? "infinity" : l.depth()).append("</D:depth>")
-                    .append("<D:timeout>Second-").append(Math.max(1, (l.expiresAt().getEpochSecond() - Instant.now().getEpochSecond()))).append("</D:timeout>")
+                    .append("<D:depth>").append(l.depth() == Integer.MAX_VALUE ? INFINITY : l.depth()).append("</D:depth>")
+                    .append("<D:timeout>").append(TIMEOUT_SECOND).append(Math.max(1, (l.expiresAt().getEpochSecond() - Instant.now().getEpochSecond()))).append("</D:timeout>")
                     .append("<D:locktoken><D:href>").append(escapeXml(l.token())).append("</D:href></D:locktoken>")
                     .append("</D:activelock></D:lockdiscovery>");
         });
 
-        sb.append("</D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat>")
+        sb.append("</D:prop><D:status>").append(PROTOCOL_HTTP_1_1).append(" ").append(SC_200_OK).append(" OK</D:status></D:propstat>")
                 .append("</D:response>");
         return sb.toString();
     }
@@ -350,14 +367,14 @@ public class WebDavServlet extends HttpServlet {
         if (lockOpt.isEmpty()) return true;
 
         String expected = lockOpt.get().token();
-        String ifHeader = req.getHeader("If");
-        String lockTokenHeader = extractLockToken(req.getHeader("Lock-Token"));
+        String ifHeader = req.getHeader(HEADER_IF);
+        String lockTokenHeader = extractLockToken(req.getHeader(HEADER_LOCK_TOKEN));
 
         if (containsToken(ifHeader, expected) || (lockTokenHeader != null && lockTokenHeader.equals(expected))) {
             return true;
         }
 
-        resp.sendError(423, "Locked");
+        resp.sendError(SC_423_LOCKED, "Locked");
         return false;
     }
 
@@ -377,7 +394,7 @@ public class WebDavServlet extends HttpServlet {
     protected static int parseDepth(String depth) {
         if (depth == null) return 0;
         String d = depth.trim().toLowerCase(Locale.ROOT);
-        if ("infinity".equals(d)) return Integer.MAX_VALUE;
+        if (INFINITY.equals(d)) return Integer.MAX_VALUE;
         try { return Integer.parseInt(d); } catch (Exception e) {
             LOG.info("Ignore exception while parsing Depth header: {}", depth, e);
             return 0;
@@ -388,10 +405,10 @@ public class WebDavServlet extends HttpServlet {
         if (timeout == null) return 600;
         // formats: Second-600, Infinite
         String t = timeout.trim();
-        if (t.equalsIgnoreCase("Infinite")) return 86400;
-        int i = t.indexOf("Second-");
+        if (t.equalsIgnoreCase(TIMEOUT_INFINITE)) return 86400;
+        int i = t.indexOf(TIMEOUT_SECOND);
         if (i >= 0) {
-            try { return Long.parseLong(t.substring(i + 7)); } catch (Exception e) {
+            try { return Long.parseLong(t.substring(i + TIMEOUT_SECOND.length())); } catch (Exception e) {
                 LOG.info("Ignore exception while parsing Timeout header: {}", timeout, e);
             }
         }

@@ -61,4 +61,8 @@ public final class LdapAuthenticator implements Authenticator {
             }
         }
     }
+    @Override
+    public String toString() {
+        return "LdapAuthenticator[url=" + ldapUrl + ", dnPattern=" + userDnPattern + "]";
+    }
 }

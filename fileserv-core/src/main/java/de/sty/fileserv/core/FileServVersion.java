@@ -10,10 +10,9 @@ import java.util.ResourceBundle;
  * Provides the project name and version loaded from version.properties.
  */
 public final class FileServVersion {
-    private static final Logger LOG = LoggerFactory.getLogger(FileServVersion.class);
-
     public static final String NAME;
     public static final String VERSION;
+    private static final Logger LOG = LoggerFactory.getLogger(FileServVersion.class);
 
     static {
         ResourceBundle rb = ResourceBundle.getBundle("version");
@@ -27,5 +26,7 @@ public final class FileServVersion {
         }
     }
 
-    private FileServVersion() {}
+    private FileServVersion() {
+    }
+
 }

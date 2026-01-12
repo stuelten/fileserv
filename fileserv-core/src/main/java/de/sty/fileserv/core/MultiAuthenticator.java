@@ -31,4 +31,10 @@ public class MultiAuthenticator implements Authenticator {
         }
         return false;
     }
+
+    @Override
+    public String toString() {
+        return "MultiAuthenticator" + authenticators;
+    }
+
 }

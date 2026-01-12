@@ -4,4 +4,4 @@ data
 **/target/
 
 /keystore.p12
-/passwords.txt
+/fileserv-passwd

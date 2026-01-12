@@ -1,6 +1,7 @@
 package de.sty.fileserv;
 
 import de.sty.fileserv.core.Authenticator;
+import de.sty.fileserv.core.FileServConfig;
 import de.sty.fileserv.core.SimpleAuthenticator;
 import de.sty.fileserv.core.WebDavServer;
 import org.eclipse.jetty.server.Server;
@@ -16,6 +17,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Base64;
 
+import static de.sty.fileserv.core.WebDavConstants.AUTH_PREFIX_BASIC;
+import static de.sty.fileserv.core.WebDavConstants.HEADER_SERVER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.jetty.http.HttpStatus.*;
 
@@ -30,9 +33,9 @@ class WebDavIntegrationTest {
 
     @BeforeEach
     void start() throws Exception {
-        auth = "Basic " + Base64.getEncoder().encodeToString("alice:secret".getBytes(StandardCharsets.UTF_8));
+        auth = AUTH_PREFIX_BASIC + Base64.getEncoder().encodeToString("alice:secret".getBytes(StandardCharsets.UTF_8));
         Authenticator authenticator = new SimpleAuthenticator("alice", "secret");
-        server = WebDavServer.build(new WebDavServer.Config(
+        server = WebDavServer.build(new FileServConfig(
                 tempDir,
                 true,   // behindProxy
                 0,      // httpPort: 0 => let Jetty choose? (we’ll set connector port after start)
@@ -71,7 +74,7 @@ class WebDavIntegrationTest {
                 .build();
 
         var resp = client.send(get, HttpResponse.BodyHandlers.ofString());
-        assertThat(resp.headers().firstValue("Server")).isPresent().get().asString().contains("fileserv-core/");
+        assertThat(resp.headers().firstValue(HEADER_SERVER)).isPresent().get().asString().contains("fileserv-core/");
     }
 
     @Test

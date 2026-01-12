@@ -34,4 +34,22 @@ class MultiAuthenticatorTest {
         assertThat(multi.authenticate("bob", "wrong")).isFalse();
         assertThat(multi.authenticate("unknown", "any")).isFalse();
     }
+    @Test
+    void testToString() throws IOException {
+        Path authFile = tempDir.resolve("auth-toString.txt");
+        Files.writeString(authFile, "charlie:secret\n");
+
+        Authenticator auth1 = new SimpleAuthenticator("alice", "secret");
+        Authenticator auth2 = new FileAuthenticator(authFile);
+
+        MultiAuthenticator multi = new MultiAuthenticator(auth1, auth2);
+
+        assertThat(multi.toString())
+                .contains("MultiAuthenticator")
+                .contains("SimpleAuthenticator")
+                .contains("alice")
+                .contains("FileAuthenticator")
+                .contains("auth-toString.txt")
+                .contains("charlie");
+    }
 }

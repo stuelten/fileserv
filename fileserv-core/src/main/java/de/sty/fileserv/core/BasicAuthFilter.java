@@ -8,18 +8,20 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
-public final class SimpleBasicAuthFilter implements Filter {
+import static de.sty.fileserv.core.WebDavConstants.*;
+
+public final class BasicAuthFilter implements Filter {
     private final Authenticator authenticator;
     private final boolean behindProxy;
 
-    public SimpleBasicAuthFilter(Authenticator authenticator, boolean behindProxy) {
+    public BasicAuthFilter(Authenticator authenticator, boolean behindProxy) {
         this.authenticator = authenticator;
         this.behindProxy = behindProxy;
     }
 
     private static void challenge(HttpServletResponse res) throws IOException {
-        res.setHeader("WWW-Authenticate", "Basic realm=\"webdav\"");
-        res.sendError(401);
+        res.setHeader(HEADER_WWW_AUTHENTICATE, AUTH_PREFIX_BASIC + "realm=\"webdav\"");
+        res.sendError(SC_401_UNAUTHORIZED);
     }
 
     @Override
@@ -31,17 +33,17 @@ public final class SimpleBasicAuthFilter implements Filter {
 
         // Require external HTTPS for Basic Auth
         if (!isExternallySecure(req)) {
-            res.sendError(403, "HTTPS required");
+            res.sendError(SC_403_FORBIDDEN, "HTTPS required");
             return;
         }
 
-        String auth = req.getHeader("Authorization");
-        if (auth == null || !auth.startsWith("Basic ")) {
+        String auth = req.getHeader(HEADER_AUTHORIZATION);
+        if (auth == null || !auth.startsWith(AUTH_PREFIX_BASIC)) {
             challenge(res);
             return;
         }
 
-        String decoded = new String(Base64.getDecoder().decode(auth.substring(6)), StandardCharsets.UTF_8);
+        String decoded = new String(Base64.getDecoder().decode(auth.substring(AUTH_PREFIX_BASIC.length())), StandardCharsets.UTF_8);
         int idx = decoded.indexOf(':');
         String u = (idx >= 0) ? decoded.substring(0, idx) : decoded;
         String p = (idx >= 0) ? decoded.substring(idx + 1) : "";
@@ -60,10 +62,10 @@ public final class SimpleBasicAuthFilter implements Filter {
         if (req.isSecure()) return true;
 
         if (behindProxy) {
-            String xfProto = req.getHeader("X-Forwarded-Proto");
+            String xfProto = req.getHeader(HEADER_X_FORWARDED_PROTO);
             if (xfProto != null && xfProto.equalsIgnoreCase("https")) return true;
 
-            String forwarded = req.getHeader("Forwarded");
+            String forwarded = req.getHeader(HEADER_FORWARDED);
             if (forwarded != null && forwarded.toLowerCase().contains("proto=https"))
                 return true;
         }

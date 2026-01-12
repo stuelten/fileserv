@@ -18,6 +18,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import static de.sty.fileserv.core.WebDavConstants.AUTH_PREFIX_BASIC;
+import static de.sty.fileserv.core.WebDavConstants.HEADER_SERVER;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class FileServAppIntegrationTest {
@@ -71,7 +73,7 @@ class FileServAppIntegrationTest {
         URI base = URI.create("http://localhost:" + port + "/");
 
         HttpClient client = HttpClient.newHttpClient();
-        String auth = "Basic " + Base64.getEncoder().encodeToString("testuser:testpass".getBytes(StandardCharsets.UTF_8));
+        String auth = AUTH_PREFIX_BASIC + Base64.getEncoder().encodeToString("testuser:testpass".getBytes(StandardCharsets.UTF_8));
 
         HttpRequest request = HttpRequest.newBuilder(base)
                 .header("Authorization", auth)
@@ -82,6 +84,6 @@ class FileServAppIntegrationTest {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.headers().firstValue("Server")).isPresent().get().asString().contains("fileserv-core/");
+        assertThat(response.headers().firstValue(HEADER_SERVER)).isPresent().get().asString().contains("fileserv-core/");
     }
 }
