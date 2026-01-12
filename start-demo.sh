@@ -32,5 +32,5 @@ fi
 
 java -jar fileserv-app/target/fileserv-app.jar \
      "./data" \
-     --passwords="$PASSWORDS_FILE" \
+     --passwd="$PASSWORDS_FILE" \
      --behind-proxy=false
