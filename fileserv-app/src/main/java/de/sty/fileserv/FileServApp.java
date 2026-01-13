@@ -33,29 +33,47 @@ public class FileServApp implements Callable<Integer> {
 
     @Parameters(index = "0", description = "Data directory to serve", defaultValue = "./data")
     Path dataDir;
+    // Set by PicoCLI
+    @SuppressWarnings("unused")
     @Option(names = {"--https-port"}, description = "HTTPS port (set to -1 to disable)", defaultValue = "8443")
     int httpsPort;
+    // Set by PicoCLI
+    @SuppressWarnings("unused")
     @Option(names = {"--http-port"}, description = "HTTP port (set to -1 to disable)", defaultValue = "8080")
     int httpPort;
+    // Set by PicoCLI
+    @SuppressWarnings({"unused", "MismatchedQueryAndUpdateOfCollection"})
     @Option(names = {"-u", "--user"}, description = "User name for authentication. Must followed by password.")
     private List<String> users;
+    // Set by PicoCLI
+    @SuppressWarnings({"unused", "MismatchedQueryAndUpdateOfCollection"})
     @Option(names = {"-p", "--password"}, description = "Password for authentication. A username must be given prior.")
     private List<String> passwords;
+    // Set by PicoCLI
+    @SuppressWarnings("unused")
     @Option(names = {"--keystore"}, description = "Path to the keystore file with SSL certificate", defaultValue = "keystore.p12")
     private String keyStorePath;
 
+    // Set by PicoCLI
+    @SuppressWarnings("unused")
     @Option(names = {"--keystore-password"}, description = "Keystore password", defaultValue = "changeit")
     private String keyStorePassword;
 
     @Option(names = {"--key-pass"}, description = "Key password (defaults to keystore password)")
     private String keyPassword;
 
+    // Set by PicoCLI
+    @SuppressWarnings("unused")
     @Option(names = {"--behind-proxy"}, description = "Trust X-Forwarded-* headers", defaultValue = "true")
     private boolean behindProxy;
 
+    // Set by PicoCLI
+    @SuppressWarnings("unused")
     @Option(names = {"--passwd"}, description = "Path to a passwords file")
     private Path passwordsPath;
 
+    // Set by PicoCLI
+    @SuppressWarnings({"unused", "MismatchedQueryAndUpdateOfCollection"})
     @Option(names = {"--auth"}, description = "Authenticator configuration (e.g., ldap:url=ldap://...,dnPattern=...)")
     private List<String> authConfigs;
 
@@ -68,6 +86,7 @@ public class FileServApp implements Callable<Integer> {
         CommandLine cmd = new CommandLine(app);
 
         // Pre-parse to find --config option
+        //noinspection unused
         CommandLine.ParseResult preParse = cmd.parseArgs(args);
         Path configPath = app.configFile;
 
@@ -139,7 +158,7 @@ public class FileServApp implements Callable<Integer> {
     Authenticator createAuthenticator() {
         List<Authenticator> authenticators = new ArrayList<>();
 
-        // 1. ServiceLoader based authenticators
+        // 1. Look up ServiceLoader-based authenticators
         if (authConfigs != null && !authConfigs.isEmpty()) {
             Map<String, AuthenticatorFactory> factories = new HashMap<>();
             LOG.info("AUTH: Loading authenticator factories via ServiceLoader");

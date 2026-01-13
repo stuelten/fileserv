@@ -31,6 +31,7 @@ class FileServAppIntegrationTest {
     private ExecutorService executor;
     private int port;
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     @AfterEach
     void tearDown() throws Exception {
         if (app != null) {
@@ -59,12 +60,13 @@ class FileServAppIntegrationTest {
             );
         });
 
-        // Wait for server to start
+        // Wait for the server to start
         long start = System.currentTimeMillis();
         while (app.getServer() == null || !app.getServer().isStarted()) {
             if (System.currentTimeMillis() - start > 10000) {
                 throw new RuntimeException("Server failed to start in 10s");
             }
+            //noinspection BusyWait
             Thread.sleep(100);
         }
 
@@ -72,16 +74,18 @@ class FileServAppIntegrationTest {
         port = ((ServerConnector) server.getConnectors()[0]).getLocalPort();
         URI base = URI.create("http://localhost:" + port + "/");
 
-        HttpClient client = HttpClient.newHttpClient();
-        String auth = AUTH_PREFIX_BASIC + Base64.getEncoder().encodeToString("testuser:testpass".getBytes(StandardCharsets.UTF_8));
+        HttpResponse<String> response;
+        try (HttpClient client = HttpClient.newHttpClient()) {
+            String auth = AUTH_PREFIX_BASIC + Base64.getEncoder().encodeToString("testuser:testpass".getBytes(StandardCharsets.UTF_8));
 
-        HttpRequest request = HttpRequest.newBuilder(base)
-                .header("Authorization", auth)
-                .header("X-Forwarded-Proto", "https")
-                .method("OPTIONS", HttpRequest.BodyPublishers.noBody())
-                .build();
+            HttpRequest request = HttpRequest.newBuilder(base)
+                    .header("Authorization", auth)
+                    .header("X-Forwarded-Proto", "https")
+                    .method("OPTIONS", HttpRequest.BodyPublishers.noBody())
+                    .build();
 
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        }
 
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.headers().firstValue(HEADER_SERVER)).isPresent().get().asString().contains("fileserv-core/");
@@ -112,6 +116,7 @@ class FileServAppIntegrationTest {
             if (System.currentTimeMillis() - start > 10000) {
                 throw new RuntimeException("Server failed to start in 10s");
             }
+            //noinspection BusyWait
             Thread.sleep(100);
         }
 
@@ -119,16 +124,18 @@ class FileServAppIntegrationTest {
         port = ((ServerConnector) server.getConnectors()[0]).getLocalPort();
         URI base = URI.create("http://localhost:" + port + "/");
 
-        HttpClient client = HttpClient.newHttpClient();
-        String auth = AUTH_PREFIX_BASIC + Base64.getEncoder().encodeToString("pluginuser:pluginpass".getBytes(StandardCharsets.UTF_8));
+        HttpResponse<String> response;
+        try (HttpClient client = HttpClient.newHttpClient()) {
+            String auth = AUTH_PREFIX_BASIC + Base64.getEncoder().encodeToString("pluginuser:pluginpass".getBytes(StandardCharsets.UTF_8));
 
-        HttpRequest request = HttpRequest.newBuilder(base)
-                .header("Authorization", auth)
-                .header("X-Forwarded-Proto", "https")
-                .method("OPTIONS", HttpRequest.BodyPublishers.noBody())
-                .build();
+            HttpRequest request = HttpRequest.newBuilder(base)
+                    .header("Authorization", auth)
+                    .header("X-Forwarded-Proto", "https")
+                    .method("OPTIONS", HttpRequest.BodyPublishers.noBody())
+                    .build();
 
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        }
 
         assertThat(response.statusCode()).isEqualTo(200);
     }
