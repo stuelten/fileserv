@@ -81,6 +81,8 @@ Currently supported types:
 - **ldap**: Authenticates against an LDAP server.
   - `url`: LDAP server URL (e.g., `ldap://localhost:389`).
   - `dnPattern`: Pattern for user DN (e.g., `uid=%s,ou=users,dc=example,dc=com`).
+- **dummy**: A dummy authenticator for testing.
+  - `accept`: If set to `true` (default), all requests are accepted. If `false`, all requests are revoked.
 
 Example:
 ```bash

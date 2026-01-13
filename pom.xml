@@ -14,7 +14,8 @@
 
     <modules>
         <module>fileserv-core</module>
-        <module>fileserv-ldap</module>
+        <module>fileserv-auth-ldap</module>
+        <module>fileserv-auth-dummy</module>
         <module>fileserv-app</module>
         <module>fileserv-test-webdav</module>
     </modules>
@@ -39,7 +40,12 @@
             </dependency>
             <dependency>
                 <groupId>de.sty</groupId>
-                <artifactId>fileserv-ldap</artifactId>
+                <artifactId>fileserv-auth-ldap</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>de.sty</groupId>
+                <artifactId>fileserv-auth-dummy</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
