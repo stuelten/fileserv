@@ -13,10 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.Callable;
 
 // version is set by maven via filtering
@@ -58,6 +55,9 @@ public class FileServApp implements Callable<Integer> {
 
     @Option(names = {"--passwd"}, description = "Path to a passwords file")
     private Path passwordsPath;
+
+    @Option(names = {"--auth"}, description = "Authenticator configuration (e.g., ldap:url=ldap://...,dnPattern=...)")
+    private List<String> authConfigs;
 
     private Server server;
 
@@ -136,9 +136,46 @@ public class FileServApp implements Callable<Integer> {
     /**
      * Creates authenticator from files and CLI parameters
      */
-    de.sty.fileserv.core.Authenticator createAuthenticator() {
-        List<de.sty.fileserv.core.Authenticator> authenticators = new ArrayList<>();
+    Authenticator createAuthenticator() {
+        List<Authenticator> authenticators = new ArrayList<>();
 
+        // 1. ServiceLoader based authenticators
+        if (authConfigs != null && !authConfigs.isEmpty()) {
+            Map<String, AuthenticatorFactory> factories = new HashMap<>();
+            LOG.info("AUTH: Loading authenticator factories via ServiceLoader");
+            ServiceLoader.load(AuthenticatorFactory.class).forEach(f -> {
+                LOG.info("AUTH: Found authenticator factory: {}", f);
+                factories.put(f.getType(), f);
+            });
+
+            for (String authConfig : authConfigs) {
+                int colonIdx = authConfig.indexOf(':');
+                if (colonIdx == -1) {
+                    LOG.error("Invalid auth config: {}. Expected type:key=value,...", authConfig);
+                    throw new IllegalArgumentException("Invalid auth config: " + authConfig);
+                }
+                String type = authConfig.substring(0, colonIdx);
+                String configStr = authConfig.substring(colonIdx + 1);
+                Map<String, String> config = new HashMap<>();
+                for (String pair : configStr.split(",")) {
+                    String[] kv = pair.split("=", 2);
+                    if (kv.length == 2) {
+                        config.put(kv[0], kv[1]);
+                    }
+                }
+
+                AuthenticatorFactory factory = factories.get(type);
+                if (factory != null) {
+                    authenticators.add(factory.create(config));
+                    LOG.info("AUTH: Added authenticator of type: {}", type);
+                } else {
+                    LOG.error("AUTH: No AuthenticatorFactory found for type: {}", type);
+                    throw new IllegalArgumentException("No AuthenticatorFactory found for type: " + type);
+                }
+            }
+        }
+
+        // 2. legacy passwd file
         Path passwdFile = passwordsPath;
         if (passwdFile == null) {
             Path defaultPasswd = Paths.get("fileserv-passwd");

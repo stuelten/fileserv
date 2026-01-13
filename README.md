@@ -69,6 +69,26 @@ using `-u` (or `--user`) and `-p` (or `--password`):
 java -jar fileserv-app.jar -u alice -p secret -u bob -p password
 ```
 
+### Authentication Plugins
+
+You can use authentication plugins via the `--auth` option.
+The format is `type:key=value,key2=value2`.
+
+Currently supported types:
+
+- **file**: Reads users from a file.
+  - `path`: Path to the password file.
+- **ldap**: Authenticates against an LDAP server.
+  - `url`: LDAP server URL (e.g., `ldap://localhost:389`).
+  - `dnPattern`: Pattern for user DN (e.g., `uid=%s,ou=users,dc=example,dc=com`).
+
+Example:
+```bash
+java -jar fileserv-app.jar --auth ldap:url=ldap://localhost:389,dnPattern=uid=%s,ou=users,dc=example,dc=com
+```
+
+Multiple `--auth` options can be provided.
+
 ### Default Credentials
 
 If no authentication is configured, FileServ defaults to:
@@ -89,6 +109,7 @@ FileServ provides the following command-line options:
 | `-u`, `--user`        | User name for authentication                 |                       |
 | `-p`, `--password`    | Password for authentication                  |                       |
 | `--passwd`            | Path to a passwords file                     |                       |
+| `--auth`              | Authenticator plugin configuration           |                       |
 | `--keystore`          | Path to the keystore file (SSL)              | `keystore.p12`        |
 | `--keystore-password` | Keystore password                            | `changeit`            |
 | `--key-pass`          | Key password                                 | (same as keystore)    |
