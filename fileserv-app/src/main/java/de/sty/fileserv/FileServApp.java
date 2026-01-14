@@ -79,7 +79,11 @@ public class FileServApp implements Callable<Integer> {
 
     private Server server;
 
-    static void main(String[] args) {
+    /**
+     * Starts application; parses arguments; exits with status
+     */
+    public static void main(String[] args) {
+        System.out.println("FileServ " + VERSION);
         LOG.info("Starting FileServ {}...", VERSION);
 
         FileServApp app = new FileServApp();

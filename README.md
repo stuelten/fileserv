@@ -7,8 +7,23 @@ using the WebDAV protocol, supporting both HTTP and HTTPS.
 
 ## Getting Started
 
-The easiest way to see FileServ in action
-is to use the provided demo script:
+### Single File Distribution (Recommended)
+
+You can build a single executable file that includes all dependencies:
+
+```bash
+./mvnw clean package -DskipTests
+```
+
+This will produce an executable at `fileserv-app/target/fileserv`. You can run it directly:
+
+```bash
+./fileserv-app/target/fileserv --help
+```
+
+### Using the Demo Script
+
+Alternatively, you can use the provided demo script:
 
 ```bash
 ./start-demo.sh
@@ -130,3 +145,106 @@ You can also use:
 
 - **System Properties**: Prefixed with `fileserv.` (e.g., `-Dfileserv.http-port=9090`)
 - **Environment Variables**: Prefixed with `FILESERV_` (e.g., `FILESERV_HTTP_PORT=9090`)
+
+## Development & Testing Tools
+
+### Build and Test
+
+You can run all tests (Bats for scripts and Maven for Java)
+and build the project and Docker image
+using the provided `build.sh` script:
+
+```bash
+./build.sh [clean]
+```
+
+### Test Data Generator
+
+The project includes two versions of a utility to generate random directory hierarchies for testing purposes:
+a Bash script and a Java-based native executable.
+Both support the same command-line parameters.
+
+#### Bash Version
+
+**Location**: `bin/fileserv-test-generate-hierarchy`
+
+**Usage**:
+```bash
+./bin/fileserv-test-generate-hierarchy [OPTIONS] <target_dir>
+```
+
+#### Java Version (Native Executable)
+
+The Java version is implemented using `picocli`
+and can be compiled into a standalone native executable using GraalVM.
+This provides instant startup and eliminates the need for a JRE.
+
+**Location**: `fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy` (after build)
+
+**Build**:
+To build the native executable, ensure you have a GraalVM-compatible JDK (version 21+) and run:
+```bash
+JAVA_HOME=/path/to/graalvm ./mvnw clean package -pl fileserv-test-generate-hierarchy -DskipTests
+```
+
+**Usage**:
+```bash
+./fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy [OPTIONS] <target_dir>
+```
+
+#### Options & Example
+
+**Options**:
+- `-s`, `--size <size>`: Total size of all files (e.g., `20mb`, `500kb`). Default: `2mb`.
+- `-c`, `--count <items>`: Total number of files and directories to create. Default: `100`.
+- `-r`, `--ratio-dir-to-files <R>`: Ratio of files to directories (e.g., `12` means ~1 dir per 12 files). Default: `10`.
+- `-d`, `--depth <max_depth>`: Maximum depth of the directory tree. Default: `4`.
+
+**Example**:
+```bash
+# Using the Java version
+./fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy --size 20mb --count 1000 --ratio-dir-to-files 12 --depth 6 test-data
+```
+
+This creates a directory `test-data`
+containing approximately 1000 items (files and directories)
+with a total size of 20MB,
+spread across a hierarchy up to 6 levels deep.
+
+## Installation via Homebrew
+
+You can install the test utilities via Homebrew using our custom Tap.
+
+### 1. Setup the Tap
+
+The Homebrew formula is maintained
+in a separate repository [homebrew-tap](https://github.com/stuelten/homebrew-tap).
+To install it, you first need to add the Tap to your local Homebrew:
+
+```bash
+brew tap stuelten/tap
+```
+
+### 2. Install the Test Apps
+
+Once the Tap is added, you can install the test applications:
+
+```bash
+brew install fileserv-test-apps
+```
+
+This will download the pre-built native executables and install them into your system path.
+
+### 3. Usage
+
+After installation, you can run the tools directly from any directory:
+
+```bash
+fileserv-test-generate-hierarchy --help
+```
+
+### 4. Repository Structure
+
+Following Homebrew's best practices, we use two separate repositories:
+- **[fileserv](https://github.com/stuelten/fileserv)**: The main project containing the source code and build logic.
+- **[homebrew-tap](https://github.com/stuelten/homebrew-tap)**: A dedicated repository for Homebrew formulae.

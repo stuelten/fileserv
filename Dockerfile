@@ -1,9 +1,14 @@
-FROM eclipse-temurin:25-jre
+FROM eclipse-temurin:21-jre
 WORKDIR /app
-COPY fileserv-app/target/fileserv-app.jar app.jar
+COPY fileserv-app/target/fileserv-app.jar fileserv-app.jar
+COPY fileserv-core/target/classes/version.properties ./
+COPY fileserv-passwd* ./
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
 
 # Create data directory
 RUN mkdir -p /app/data
+VOLUME ["/app/data"]
 
 # Generate self-signed certificate if it doesn't exist at build time
 RUN keytool -genkeypair -alias webdav -keyalg RSA -keysize 2048 \
@@ -14,4 +19,4 @@ RUN keytool -genkeypair -alias webdav -keyalg RSA -keysize 2048 \
 # Expose default ports
 EXPOSE 8080 8443
 
-ENTRYPOINT ["java", "-Droot=/app/data", "-DbehindProxy=false", "-Dkeystore=/app/keystore.p12", "-jar", "app.jar"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

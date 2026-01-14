@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# build.sh - Build and Test Script for FileServ
+
+set -e
+
+# Usage: ./build.sh [clean]
+
+# Handle clean option
+CLEAN=false
+for arg in "$@"; do
+    if [ "$arg" == "clean" ]; then
+        CLEAN=true
+        break
+    fi
+done
+
+echo "=== Building Maven Modules ==="
+MVN_GOALS="package"
+if [ "$CLEAN" = true ]; then
+    MVN_GOALS="clean package"
+fi
+# shellcheck disable=SC2086
+./mvnw $MVN_GOALS -DskipTests=false $MAVEN_ARGS
+
+echo ""
+echo "=== Running Bats Tests for Scripts and Native Apps ==="
+# Check if bats is installed
+if command -v bats >/dev/null 2>&1; then
+    # Run tests for shell scripts
+    bats test/*.bats
+else
+    echo "Warning: bats not found. Skipping script tests."
+    echo "To run these tests, install Bats: https://github.com/bats-core/bats-core"
+fi
+
+echo ""
+echo "=== Building Docker Image ==="
+# Use docker or podman
+DOCKER_CMD=$(command -v docker || command -v podman || true)
+if [ -n "$DOCKER_CMD" ]; then
+    "$DOCKER_CMD" build -t fileserv .
+else
+    echo "Warning: Neither docker nor podman found. Skipping Docker build."
+fi
+
+echo ""
+echo "=== Build and Test Completed Successfully ==="

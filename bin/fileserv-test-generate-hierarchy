@@ -1,0 +1,192 @@
+#!/bin/bash
+
+# fileserv-test-generate-hierarchy
+#
+# A script to generate a random directory hierarchy with controlled characteristics
+# for testing file servers and WebDAV implementations.
+#
+# Features:
+# - Total size constraint (e.g., 20MB)
+# - Total item count (files + directories)
+# - Directory-to-file ratio
+# - Maximum hierarchy depth
+# - Randomly distributed file sizes
+
+# Default values
+SIZE_MB=2
+COUNT=100
+RATIO=10
+DEPTH=4
+TARGET=""
+
+# Display usage information
+usage() {
+    echo "Usage: $0 [OPTIONS] <target_dir>"
+    echo ""
+    echo "  Create a test directory hierarchy with a lot of files, directories and data."
+    echo ""
+    echo "Options:"
+    echo "  -s, --size <size>              Total size of all files (e.g., 20mb, 500kb). Default: 2mb"
+    echo "  -c, --count <items>            Total number of files and directories to create. Default: 100"
+    echo "  -r, --ratio-dir-to-files <R>   Ratio of files to directories (e.g., 12 means ~1 dir per 12 files). Default: 10"
+    echo "  -d, --depth <max_depth>        Maximum depth of the directory tree. Default: 4"
+    echo ""
+    echo "Example:"
+    echo "  $0 --size 20mb --count 1000 --ratio-dir-to-files 12 --depth 6 test-data"
+    exit 1
+}
+
+# -----------------------------------------------------------------------------
+# Script starts here
+# -----------------------------------------------------------------------------
+
+# Parse arguments
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -s|--size)
+            if [[ "$2" =~ ^([0-9]+)([kK][bB]|[mM][bB])?$ ]]; then
+                VAL="${BASH_REMATCH[1]}"
+                UNIT="${BASH_REMATCH[2],,}" # Lowercase the unit
+                case $UNIT in
+                    kb) SIZE_BYTES=$(( VAL * 1024 )) ;;
+                    mb|"") SIZE_BYTES=$(( VAL * 1024 * 1024 )) ;;
+                esac
+                shift
+            else
+                SIZE_BYTES=$(( $2 * 1024 * 1024 ))
+                shift
+            fi
+            ;;
+        -c|--count) COUNT="$2"; shift ;;
+        -r|--ratio-dir-to-files) RATIO="$2"; shift ;;
+        -d|--depth) DEPTH="$2"; shift ;;
+        -h|--help) usage ;;
+        -*) echo "Unknown option: $1"; usage ;;
+        *) TARGET="$1" ;;
+    esac
+    shift
+done
+
+# Basic validation
+if [[ -z "$TARGET" || $SIZE_BYTES -lt 0 || $COUNT -le 0 || $RATIO -lt 0 || $DEPTH -lt 0 ]]; then
+    usage
+fi
+
+# Calculate number of dirs and files
+# The formula ensures we respect the total count and the ratio.
+# dirs = count / (ratio + 1)
+NUM_DIRS=$(( COUNT / (RATIO + 1) ))
+if [ "$NUM_DIRS" -lt 1 ]; then NUM_DIRS=1; fi
+NUM_FILES=$(( COUNT - NUM_DIRS ))
+
+echo "Generating $NUM_FILES files and $NUM_DIRS directories (Total: $COUNT)"
+echo "Target size: $SIZE_BYTES bytes, Max depth: $DEPTH"
+
+mkdir -p "$TARGET"
+
+# Track created directories to randomly place files later
+CREATED_DIRS=("$TARGET")
+DIRS_TO_CREATE=$(( NUM_DIRS - 1 ))
+
+# -----------------------------------------------------------------------------
+# Step 1: Build the directory structure
+# -----------------------------------------------------------------------------
+
+# Use a breadth-first approach to build the tree up to DEPTH
+CURRENT_DEPTH_DIRS=("$TARGET")
+
+for (( d=1; d<=DEPTH; d++ )); do
+    if [ "$DIRS_TO_CREATE" -le 0 ]; then break; fi
+    
+    NEXT_DEPTH_DIRS=()
+    for PARENT in "${CURRENT_DEPTH_DIRS[@]}"; do
+        if [ "$DIRS_TO_CREATE" -le 0 ]; then break; fi
+        
+        # Determine how many subdirs for this parent (max 5 at once for variety)
+        MAX_SUB=$(( DIRS_TO_CREATE > 5 ? 5 : DIRS_TO_CREATE ))
+        SUB_COUNT=$(( RANDOM % MAX_SUB + 1 ))
+        
+        # If it's the last depth, we don't create subdirs
+        if [ "$d" -eq "$DEPTH" ]; then SUB_COUNT=0; fi
+
+        for (( i=0; i<SUB_COUNT; i++ )); do
+            DNAME="$PARENT/dir_${d}_${i}_$RANDOM"
+            mkdir -p "$DNAME"
+            NEXT_DEPTH_DIRS+=("$DNAME")
+            CREATED_DIRS+=("$DNAME")
+            DIRS_TO_CREATE=$(( DIRS_TO_CREATE - 1 ))
+        done
+    done
+    
+    if [ ${#NEXT_DEPTH_DIRS[@]} -eq 0 ]; then break; fi
+    CURRENT_DEPTH_DIRS=("${NEXT_DEPTH_DIRS[@]}")
+done
+
+# Fill remaining directories randomly if some are still needed
+while [ "$DIRS_TO_CREATE" -gt 0 ]; do
+    PARENT_INDEX=$(( RANDOM % ${#CREATED_DIRS[@]} ))
+    PARENT="${CREATED_DIRS[$PARENT_INDEX]}"
+    
+    # Check depth (roughly)
+    REL_PATH="${PARENT#$TARGET}"
+    REL_PATH="${REL_PATH#/}"
+    
+    if [ -z "$REL_PATH" ]; then
+        CURRENT_DEPTH=0
+    else
+        CURRENT_DEPTH=$(echo "$REL_PATH" | tr '/' '\n' | wc -l)
+    fi
+
+    if [ "$CURRENT_DEPTH" -lt "$DEPTH" ]; then
+        DNAME="$PARENT/extra_dir_$DIRS_TO_CREATE"
+        if [ ! -d "$DNAME" ]; then
+            mkdir -p "$DNAME"
+            CREATED_DIRS+=("$DNAME")
+            DIRS_TO_CREATE=$(( DIRS_TO_CREATE - 1 ))
+        fi
+    else
+        ((FAIL_SAFE++))
+        if [ "$FAIL_SAFE" -gt 1000 ]; then break; fi
+    fi
+done
+
+# -----------------------------------------------------------------------------
+# Step 2: Distribute files and data
+# -----------------------------------------------------------------------------
+
+TOTAL_SIZE_BYTES=$SIZE_BYTES
+if [ "$NUM_FILES" -gt 0 ]; then
+    AVG_FILE_SIZE=$(( TOTAL_SIZE_BYTES / NUM_FILES ))
+else
+    AVG_FILE_SIZE=0
+fi
+
+for (( i=0; i<NUM_FILES; i++ )); do
+    # Pick a random directory from our created list
+    PARENT_INDEX=$(( RANDOM % ${#CREATED_DIRS[@]} ))
+    PARENT="${CREATED_DIRS[$PARENT_INDEX]}"
+    FNAME="$PARENT/file_$i.bin"
+    
+    # Calculate size for this file
+    if [ "$i" -eq $(( NUM_FILES - 1 )) ]; then
+        # Last file gets the remainder
+        SIZE=$TOTAL_SIZE_BYTES
+    else
+        # Vary size 50% to 150% of average
+        VAR=$(( AVG_FILE_SIZE / 2 ))
+        if [ "$VAR" -eq 0 ]; then VAR=1; fi
+        SIZE=$(( AVG_FILE_SIZE - VAR + (RANDOM % (2 * VAR)) ))
+        if [ "$SIZE" -gt "$TOTAL_SIZE_BYTES" ]; then SIZE=$TOTAL_SIZE_BYTES; fi
+    fi
+    
+    # Generate file with random data using /dev/urandom
+    if [ "$SIZE" -gt 0 ]; then
+        head -c "$SIZE" </dev/urandom >"$FNAME"
+    else
+        touch "$FNAME"
+    fi
+    
+    TOTAL_SIZE_BYTES=$(( TOTAL_SIZE_BYTES - SIZE ))
+done
+
+echo "Generation complete."
