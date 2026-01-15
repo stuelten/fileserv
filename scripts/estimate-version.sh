@@ -8,13 +8,19 @@ set -e
 # - 'fix:' or 'fix(...):' -> patch increment
 # - 'BREAKING CHANGE:' or 'feat!:' -> major increment
 
-# Default to 0.1.0 if no tags found
-get_latest_tag() {
-    git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0"
+# Default to version from pom.xml if no tags found
+get_base_version() {
+    LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+    if [ -n "$LATEST_TAG" ]; then
+        echo "${LATEST_TAG#v}"
+    else
+        # Fallback to pom.xml version, removing -SNAPSHOT
+        ./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout | grep -v "\[" | tail -n 1 | sed 's/-SNAPSHOT//'
+    fi
 }
 
-LATEST_TAG=$(get_latest_tag)
-CURRENT_VERSION=${LATEST_TAG#v}
+CURRENT_VERSION=$(get_base_version)
+LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
 
 # Split version into components
 IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
