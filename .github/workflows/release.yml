@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (leave empty for auto-estimation)'
+        required: false
+        default: ''
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Essential for git history and tags
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'true'
+
+      - name: Estimate Version
+        id: estimate_version
+        run: |
+          chmod +x scripts/estimate-version.sh
+          ESTIMATED_VERSION=$(./scripts/estimate-version.sh)
+          INPUT_VERSION="${{ github.event.inputs.version }}"
+          VERSION=${INPUT_VERSION:-$ESTIMATED_VERSION}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build and Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x scripts/build-and-release.sh
+          ./scripts/build-and-release.sh ${{ env.VERSION }}
