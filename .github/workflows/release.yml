@@ -38,6 +38,7 @@ jobs:
           echo "github.inputs.version: ${{ github.inputs.version }}"
           echo "github.events.inputs.version: ${{ github.events.inputs.version }}"
           echo "VERSION=$VERSION"
+          
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
