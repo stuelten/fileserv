@@ -103,7 +103,7 @@ class FileServAppIntegrationTest {
                     tempDir.toString(),
                     "--http-port=0",
                     "--https-port=-1",
-                    "--auth", "file:path=" + tempDir.resolve("users.txt")
+                    "--auth", "file-insecure:path=" + tempDir.resolve("users.txt")
             );
         });
 

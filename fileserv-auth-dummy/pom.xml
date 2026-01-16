@@ -11,7 +11,7 @@
     </parent>
 
     <artifactId>fileserv-auth-dummy</artifactId>
-    <name>fileserv-dummy-auth</name>
+    <description>A dummy authenticator not checking passwords at all but accepting or denying all users</description>
 
     <dependencies>
         <dependency>
@@ -21,6 +21,17 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.42</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>

@@ -1,5 +1,6 @@
 package de.sty.fileserv;
 
+import de.sty.fileserv.auth.file.plaintext.InsecureFileAuthenticator;
 import de.sty.fileserv.core.*;
 import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
@@ -207,7 +208,7 @@ public class FileServApp implements Callable<Integer> {
             }
         }
         if (passwdFile != null) {
-            authenticators.add(new FileAuthenticator(passwdFile));
+            authenticators.add(new InsecureFileAuthenticator(passwdFile));
             LOG.info("AUTH: Use usernames/passwords from file: {}", passwdFile);
         }
 

@@ -1,4 +1,4 @@
-package de.sty.fileserv.core;
+package de.sty.fileserv.auth.file.plaintext;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class FileAuthenticatorTest {
+class InsecureFileAuthenticatorTest {
 
     @TempDir
     Path tempDir;
@@ -32,11 +32,12 @@ class FileAuthenticatorTest {
                 admin:admin:password
                 """);
 
-        FileAuthenticator auth = new FileAuthenticator(authFile);
+        InsecureFileAuthenticator auth = new InsecureFileAuthenticator(authFile);
 
         assertThat(auth.authenticate("alice", "secret")).isTrue();
         assertThat(auth.authenticate("bob", "pass123")).isTrue();
-        assertThat(auth.authenticate("admin", "admin")).isTrue(); // Second field is password
+        // The second field is password, third field not used
+        assertThat(auth.authenticate("admin", "admin")).isTrue();
         
         assertThat(auth.authenticate("alice", "wrong")).isFalse();
         assertThat(auth.authenticate("unknown", "secret")).isFalse();
@@ -46,7 +47,7 @@ class FileAuthenticatorTest {
     void throwsExceptionOnNonExistentFile() {
         Path missingFile = tempDir.resolve("missing.txt");
         org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> 
-                new FileAuthenticator(missingFile)
+                new InsecureFileAuthenticator(missingFile)
         );
     }
 
@@ -55,17 +56,17 @@ class FileAuthenticatorTest {
         Path authFile = tempDir.resolve("auth.txt");
         Files.writeString(authFile, "alice:secret\n");
 
-        FileAuthenticator auth = new FileAuthenticator(authFile);
+        InsecureFileAuthenticator auth = new InsecureFileAuthenticator(authFile);
         assertThat(auth.authenticate("alice", "secret")).isTrue();
         assertThat(auth.authenticate("bob", "pass")).isFalse();
 
         // Wait a bit to ensure timestamp changes if FS resolution is low
-        Thread.sleep(1100);
+        Thread.sleep(100);
 
         // Update file
         Files.writeString(authFile, "alice:secret\nbob:pass\n");
         // Ensure the timestamp is definitely different
-        Files.setLastModifiedTime(authFile, FileTime.from(Instant.now()));
+        Files.setLastModifiedTime(authFile, FileTime.from(Instant.now().plusSeconds(1)));
 
         // Should now authenticate bob
         assertThat(auth.authenticate("bob", "pass")).isTrue();
@@ -76,7 +77,7 @@ class FileAuthenticatorTest {
         Path authFile = tempDir.resolve("auth.txt");
         Files.writeString(authFile, "user1:pass1\n");
 
-        FileAuthenticator auth = new FileAuthenticator(authFile);
+        InsecureFileAuthenticator auth = new InsecureFileAuthenticator(authFile);
 
         int threadCount = 10;
         int iterations = 1000;
@@ -106,9 +107,9 @@ class FileAuthenticatorTest {
 
         // Simulate file updates during concurrent access
         for (int i = 0; i < 5; i++) {
-            Thread.sleep(200);
+            Thread.sleep(100);
             Files.writeString(authFile, "user1:pass1\nuser" + i + ":pass" + i + "\n");
-            Files.setLastModifiedTime(authFile, FileTime.from(Instant.now()));
+            Files.setLastModifiedTime(authFile, FileTime.from(Instant.now().plusSeconds(10 + i)));
         }
 
         boolean finished = endLatch.await(10, TimeUnit.SECONDS);
@@ -123,7 +124,7 @@ class FileAuthenticatorTest {
         Path authFile = tempDir.resolve("auth_toString.txt");
         Files.writeString(authFile, "alice:secret\n");
 
-        FileAuthenticator auth = new FileAuthenticator(authFile);
+        InsecureFileAuthenticator auth = new InsecureFileAuthenticator(authFile);
         String toString = auth.toString();
 
         assertThat(toString).contains("path=" + authFile);

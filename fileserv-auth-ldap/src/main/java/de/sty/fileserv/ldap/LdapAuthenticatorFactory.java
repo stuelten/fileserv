@@ -20,4 +20,10 @@ public class LdapAuthenticatorFactory implements AuthenticatorFactory {
         }
         return new LdapAuthenticator(url, dnPattern);
     }
+
+    @Override
+    public String toString() {
+        return getClass().getName() + "[type=" + getType() + "]";
+    }
+
 }

@@ -1,32 +1,21 @@
 package de.sty.fileserv.core;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class MultiAuthenticatorTest {
 
-    @TempDir
-    Path tempDir;
-
     @Test
-    void authenticatesAgainstMultipleAuthenticators() throws IOException {
-        Path authFile = tempDir.resolve("auth.txt");
-        Files.writeString(authFile, "bob:pass123\n");
+    void authenticatesAgainstMultipleAuthenticators() {
+        Authenticator auth1 = new SimpleAuthenticator("alice", "secret");
+        Authenticator auth2 = new SimpleAuthenticator("bob", "pass123");
 
-        Authenticator simple = new SimpleAuthenticator("alice", "secret");
-        Authenticator file = new FileAuthenticator(authFile);
+        MultiAuthenticator multi = new MultiAuthenticator(auth1, auth2);
 
-        MultiAuthenticator multi = new MultiAuthenticator(simple, file);
-
-        // From SimpleAuthenticator
+        // From first
         assertThat(multi.authenticate("alice", "secret")).isTrue();
-        // From FileAuthenticator
+        // From second
         assertThat(multi.authenticate("bob", "pass123")).isTrue();
         
         // Mismatches
@@ -34,13 +23,11 @@ class MultiAuthenticatorTest {
         assertThat(multi.authenticate("bob", "wrong")).isFalse();
         assertThat(multi.authenticate("unknown", "any")).isFalse();
     }
+    
     @Test
-    void testToString() throws IOException {
-        Path authFile = tempDir.resolve("auth-toString.txt");
-        Files.writeString(authFile, "charlie:secret\n");
-
+    void testToString() {
         Authenticator auth1 = new SimpleAuthenticator("alice", "secret");
-        Authenticator auth2 = new FileAuthenticator(authFile);
+        Authenticator auth2 = new SimpleAuthenticator("charlie", "secret");
 
         MultiAuthenticator multi = new MultiAuthenticator(auth1, auth2);
 
@@ -48,8 +35,6 @@ class MultiAuthenticatorTest {
                 .contains("MultiAuthenticator")
                 .contains("SimpleAuthenticator")
                 .contains("alice")
-                .contains("FileAuthenticator")
-                .contains("auth-toString.txt")
                 .contains("charlie");
     }
 }

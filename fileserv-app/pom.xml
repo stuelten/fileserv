@@ -27,6 +27,18 @@
             <artifactId>fileserv-auth-dummy</artifactId>
         </dependency>
         <dependency>
+            <groupId>de.sty</groupId>
+            <artifactId>fileserv-auth-file-plaintext</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>de.sty</groupId>
+            <artifactId>fileserv-auth-file-bcrypt</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>de.sty</groupId>
+            <artifactId>fileserv-auth-file-smb</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>

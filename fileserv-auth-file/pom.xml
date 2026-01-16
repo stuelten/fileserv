@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>de.sty</groupId>
+        <artifactId>fileserv-parent</artifactId>
+        <version>0.1.2-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>fileserv-auth-file</artifactId>
+    <packaging>pom</packaging>
+
+    <name>fileserv-auth-file</name>
+    <description>Parent for file-based authenticators</description>
+
+    <modules>
+        <module>fileserv-auth-file-plaintext</module>
+        <module>fileserv-auth-file-bcrypt</module>
+        <module>fileserv-auth-file-smb</module>
+        <module>fileserv-auth-file-smbpasswd</module>
+    </modules>
+
+</project>
