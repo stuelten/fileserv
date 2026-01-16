@@ -34,7 +34,7 @@ jobs:
           INPUT_VERSION="${{ github.event.inputs.version }}"
           VERSION=${INPUT_VERSION:-$ESTIMATED_VERSION}
           echo "ESTIMATED_VERSION=$ESTIMATED_VERSION"
-          echo "INPUT_VERSION="$INPUT_VERSION"
+          echo "INPUT_VERSION=$INPUT_VERSION"
           echo "github.inputs.version: ${{ github.inputs.version }}"
           echo "github.events.inputs.version: ${{ github.events.inputs.version }}"
           echo "VERSION=$VERSION"
