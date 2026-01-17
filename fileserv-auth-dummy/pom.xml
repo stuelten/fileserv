@@ -13,4 +13,32 @@
     <artifactId>fileserv-auth-dummy</artifactId>
     <description>A dummy authenticator not checking passwords at all but accepting or denying all users</description>
 
+    <dependencies>
+        <dependency>
+            <groupId>de.sty</groupId>
+            <artifactId>fileserv-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
 </project>
