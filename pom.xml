@@ -6,7 +6,7 @@
 
     <groupId>de.sty</groupId>
     <artifactId>fileserv-parent</artifactId>
-    <version>0.1.4</version>
+    <version>0.1.4-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>fileserv-parent</name>
@@ -14,9 +14,9 @@
 
     <modules>
         <module>fileserv-core</module>
+        <module>fileserv-auth-dummy</module>
         <module>fileserv-auth-file</module>
         <module>fileserv-auth-ldap</module>
-        <module>fileserv-auth-dummy</module>
         <module>fileserv-app</module>
         <module>fileserv-test-webdav</module>
         <module>fileserv-test-generate-hierarchy</module>
@@ -27,9 +27,14 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <bcrypt.version>0.4</bcrypt.version>
         <jetty.version>12.1.5</jetty.version>
         <slf4j.version>2.0.17</slf4j.version>
+
+        <bcrypt.version>0.4</bcrypt.version>
+        <bouncycastle.version>1.82</bouncycastle.version>
+
+        <picocli.version>4.7.6</picocli.version>
+
         <junit.jupiter.version>5.11.3</junit.jupiter.version>
         <assertj.version>3.26.3</assertj.version>
     </properties>
@@ -67,11 +72,11 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.mindrot</groupId>
-                <artifactId>jbcrypt</artifactId>
-                <version>${bcrypt.version}</version>
+                <groupId>de.sty</groupId>
+                <artifactId>fileserv-auth-file-smb-utils</artifactId>
+                <version>${project.version}</version>
             </dependency>
-            
+
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-server</artifactId>
@@ -91,6 +96,7 @@
                 <groupId>org.eclipse.jetty.ee10</groupId>
                 <artifactId>jetty-ee10-servlet</artifactId>
                 <version>${jetty.version}</version>
+
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -102,26 +108,39 @@
                 <artifactId>slf4j-simple</artifactId>
                 <version>${slf4j.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>org.mindrot</groupId>
+                <artifactId>jbcrypt</artifactId>
+                <version>${bcrypt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcutil-jdk18on</artifactId>
+                <version>${bouncycastle.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>info.picocli</groupId>
+                <artifactId>picocli</artifactId>
+                <version>${picocli.version}</version>
+            </dependency>
+
+
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter</artifactId>
                 <version>${junit.jupiter.version}</version>
+                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
                 <version>${assertj.version}</version>
+                <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
-
-    <dependencies>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
 
     <build>
         <resources>
@@ -146,6 +165,15 @@
                     <version>3.5.4</version>
                     <configuration>
                         <useModulePath>false</useModulePath>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>3.3.1</version>
+                    <configuration>
+                        <encoding>UTF-8</encoding>
+                        <propertiesEncoding>UTF-8</propertiesEncoding>
                     </configuration>
                 </plugin>
             </plugins>

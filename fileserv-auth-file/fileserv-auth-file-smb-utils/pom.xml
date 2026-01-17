@@ -6,11 +6,17 @@
 
     <parent>
         <groupId>de.sty</groupId>
-        <artifactId>fileserv-parent</artifactId>
+        <artifactId>fileserv-auth-file</artifactId>
         <version>0.1.4-SNAPSHOT</version>
     </parent>
 
-    <artifactId>fileserv-auth-dummy</artifactId>
-    <description>A dummy authenticator not checking passwords at all but accepting or denying all users</description>
+    <artifactId>fileserv-auth-file-smb-utils</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcutil-jdk18on</artifactId>
+        </dependency>
+    </dependencies>
 
 </project>

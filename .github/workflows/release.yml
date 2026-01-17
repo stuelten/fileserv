@@ -29,8 +29,8 @@ jobs:
       - name: Estimate Version
         id: estimate_version
         run: |
-          chmod +x scripts/estimate-version.sh
-          ESTIMATED_VERSION=$(./scripts/estimate-version.sh)
+          chmod +x bin/estimate-version.sh
+          ESTIMATED_VERSION=$(./bin/estimate-version.sh)
           INPUT_VERSION="${{ github.event.inputs.version }}"
           VERSION=${INPUT_VERSION:-$ESTIMATED_VERSION}
           echo "ESTIMATED_VERSION=$ESTIMATED_VERSION"
@@ -44,5 +44,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          chmod +x scripts/build-and-release.sh
-          ./scripts/build-and-release.sh ${{ env.VERSION }}
+          chmod +x bin/build-and-release.sh
+          ./bin/build-and-release.sh ${{ env.VERSION }}

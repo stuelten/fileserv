@@ -8,18 +8,27 @@ set -e
 
 # Handle clean option
 CLEAN=false
+NATIVE=false
 for arg in "$@"; do
     if [ "$arg" == "clean" ]; then
         CLEAN=true
-        break
+    elif [ "$arg" == "native" ]; then
+        NATIVE=true
+    else
+        echo "Error: Unknown parameter $arg"
+        exit 1
     fi
 done
 
 echo "=== Building Maven Modules ==="
-MVN_GOALS="package"
+MVN_GOALS="install"
 if [ "$CLEAN" = true ]; then
-    MVN_GOALS="clean package"
+    MVN_GOALS="clean $MVN_GOALS"
 fi
+if [ "$NATIVE" = true ]; then
+    MVN_GOALS="-Pnative $MVN_GOALS"
+fi
+
 # shellcheck disable=SC2086
 ./mvnw $MVN_GOALS -DskipTests=false $MAVEN_ARGS
 

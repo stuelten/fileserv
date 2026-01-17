@@ -7,7 +7,7 @@
     <parent>
         <groupId>de.sty</groupId>
         <artifactId>fileserv-auth-file</artifactId>
-        <version>0.1.4</version>
+        <version>0.1.4-SNAPSHOT</version>
     </parent>
 
     <artifactId>fileserv-auth-file-smbpasswd</artifactId>
@@ -21,23 +21,13 @@
     <dependencies>
         <dependency>
             <groupId>de.sty</groupId>
-            <artifactId>fileserv-auth-file-smb</artifactId>
+            <artifactId>fileserv-auth-file-smb-utils</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>info.picocli</groupId>
             <artifactId>picocli</artifactId>
             <version>${picocli.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -83,7 +73,7 @@
                         </executions>
                         <configuration>
                             <imageName>fileserv-smbpasswd</imageName>
-                            <mainClass>de.sty.fileserv.auth.file.smb.SmbPasswdCli</mainClass>
+                            <mainClass>de.sty.fileserv.auth.file.smbpasswd.SmbPasswdCli</mainClass>
                             <buildArgs>
                                 <buildArg>--no-fallback</buildArg>
                             </buildArgs>

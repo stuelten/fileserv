@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# estimate-version.sh
+# version-estimate.sh
 # Estimates the next version based on git commit messages since the last tag.
 # Follows a simple version of Conventional Commits:
 # - 'feat:' or 'feat(...):' -> minor increment

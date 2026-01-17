@@ -1,5 +1,6 @@
 package de.sty.fileserv.auth.file.smb;
 
+import de.sty.fileserv.auth.file.smb.utils.SmbUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -17,7 +18,7 @@ class SmbAuthenticatorTest {
     @Test
     void authenticatesCorrectlyFromSmbpasswdFile() throws IOException {
         Path authFile = tempDir.resolve("smbpasswd");
-        String hash = SmbAuthenticator.ntlmHash("secret");
+        String hash = SmbUtils.ntlmHash("secret");
         Files.writeString(authFile, "alice:1000:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX:" + hash + ":[U          ]:LCT-65A6E6A0\n");
 
         SmbAuthenticator auth = new SmbAuthenticator(authFile);
@@ -27,9 +28,4 @@ class SmbAuthenticatorTest {
         assertThat(auth.authenticate("unknown", "secret")).isFalse();
     }
 
-    @Test
-    void testNtlmHash() {
-        // 'password' NTLM hash
-        assertThat(SmbAuthenticator.ntlmHash("password")).isEqualTo("8846F7EAEE8FB117AD06BDD830B7586C");
-    }
 }

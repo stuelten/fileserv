@@ -1,5 +1,6 @@
-package de.sty.fileserv.auth.file.smb;
+package de.sty.fileserv.auth.file.smbpasswd;
 
+import de.sty.fileserv.auth.file.smb.utils.SmbUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
@@ -17,6 +18,9 @@ class SmbPasswdCliTest {
     @TempDir
     Path tempDir;
 
+    /**
+     * Tests user addition; verifies file creation and hash correctness
+     */
     @Test
     void testAddUser() throws Exception {
         Path smbPasswdFile = tempDir.resolve("smbpasswd");
@@ -33,12 +37,15 @@ class SmbPasswdCliTest {
 
         List<String> lines = Files.readAllLines(smbPasswdFile);
         assertThat(lines).hasSize(1);
-        assertThat(lines.get(0)).startsWith("testuser:1000:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX:");
+        assertThat(lines.getFirst()).startsWith("testuser:1000:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX:");
         
-        String expectedHash = SmbAuthenticator.ntlmHash("testpass");
-        assertThat(lines.get(0)).contains(":" + expectedHash + ":");
+        String expectedHash = SmbUtils.ntlmHash("testpass");
+        assertThat(lines.getFirst()).contains(":" + expectedHash + ":");
     }
 
+    /**
+     * Tests user update by verifying hash replacement and absence of old hash
+     */
     @Test
     void testUpdateUser() throws Exception {
         Path smbPasswdFile = tempDir.resolve("smbpasswd");
@@ -55,11 +62,14 @@ class SmbPasswdCliTest {
         List<String> lines = Files.readAllLines(smbPasswdFile);
         assertThat(lines).hasSize(1);
         
-        String expectedHash = SmbAuthenticator.ntlmHash("newpass");
-        assertThat(lines.get(0)).contains(":" + expectedHash + ":");
-        assertThat(lines.get(0)).doesNotContain("OLDHASH");
+        String expectedHash = SmbUtils.ntlmHash("newpass");
+        assertThat(lines.getFirst()).contains(":" + expectedHash + ":");
+        assertThat(lines.getFirst()).doesNotContain("OLDHASH");
     }
 
+    /**
+     * Tests user update fails when the user doesn't exist
+     */
     @Test
     void testUserNotFound() throws Exception {
         Path smbPasswdFile = tempDir.resolve("smbpasswd");
@@ -76,6 +86,9 @@ class SmbPasswdCliTest {
         assertThat(exitCode).isEqualTo(1);
     }
 
+    /**
+     * Tests CLI user addition; validates file creation and user presence
+     */
     @Test
     void testCommandLineAddUser() throws Exception {
         Path smbPasswdFile = tempDir.resolve("smbpasswd");

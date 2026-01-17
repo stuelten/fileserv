@@ -1,12 +1,10 @@
 package de.sty.fileserv.auth.file.smb;
 
+import de.sty.fileserv.auth.file.smb.utils.SmbUtils;
 import de.sty.fileserv.core.AbstractFileAuthenticator;
-import org.bouncycastle.crypto.digests.MD4Digest;
-import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -22,28 +20,6 @@ public final class SmbAuthenticator extends AbstractFileAuthenticator {
 
     public SmbAuthenticator(Path path) {
         super(path);
-    }
-
-    /**
-     * Calculates NTLM hash (MD4 of UTF-16LE password)
-     */
-    public static String ntlmHash(String password) {
-        String result = "";
-        if (password != null) {
-            try {
-                // NTLM hash is MD4(UTF-16LE(password))
-                byte[] input = password.getBytes(StandardCharsets.UTF_16LE);
-
-                MD4Digest md4 = new MD4Digest();
-                md4.update(input, 0, input.length);
-                byte[] digest = new byte[md4.getDigestSize()];
-                md4.doFinal(digest, 0);
-                result = Hex.toHexString(digest).toUpperCase();
-            } catch (Exception e) {
-                LOG.warn("Ignoring error while calculating NTLM hash.", e);
-            }
-        }
-        return result;
     }
 
     @Override
@@ -66,7 +42,7 @@ public final class SmbAuthenticator extends AbstractFileAuthenticator {
         if (expectedHash == null || expectedHash.equals("NO PASSWORDXXXXXXXXXXXXXXXXXXXXX")) {
             LOG.debug("User '{}' not found or has no password in smbpasswd", user);
         } else {
-            String actualHash = ntlmHash(password);
+            String actualHash = SmbUtils.ntlmHash(password);
             result = expectedHash.equalsIgnoreCase(actualHash);
         }
 
