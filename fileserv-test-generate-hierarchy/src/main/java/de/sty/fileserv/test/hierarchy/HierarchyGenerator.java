@@ -31,7 +31,7 @@ public class HierarchyGenerator implements Callable<Integer> {
 
     // Set by PicoCLI
     @SuppressWarnings("unused")
-    @Option(names = {"-s", "--size"}, description = "Total size of all files (e.g., 20mb, 500kb). Default: 2mb", defaultValue = "2mb")
+    @Option(names = {"-s", "--size"}, description = "Total size of all files combined (e.g., 20mb, 500kb). NOTE: This is not size of each file! Default: 2mb", defaultValue = "2mb")
     private String sizeStr;
 
     // Set by PicoCLI

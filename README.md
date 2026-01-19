@@ -159,7 +159,7 @@ using the provided `build.sh` script:
 
 ### Test Data Generator
 
-The project includes a utility to generate random directory hierarchies for testing purposes.
+The project includes a test utility to generate random directory hierarchies for testing purposes.
 You can build it either as überjar/fat-jar or as a Java-based native executable.
 
 #### Java Version (Native Executable)
@@ -184,14 +184,17 @@ JAVA_HOME=/path/to/graalvm ./mvnw clean package -pl fileserv-test-generate-hiera
 #### Options & Example
 
 **Options**:
-- `-s`, `--size <size>`: Total size of all files (e.g., `20mb`, `500kb`). Default: `2mb`.
+- `-s`, `--size <size>`: Total size of all files combined (e.g., `20mb`, `500kb`). Default: `2mb`.
 - `-c`, `--count <items>`: Total number of files and directories to create. Default: `100`.
 - `-r`, `--ratio-dir-to-files <R>`: Ratio of files to directories (e.g., `12` means ~1 dir per 12 files). Default: `10`.
 - `-d`, `--depth <max_depth>`: Maximum depth of the directory tree. Default: `4`.
 
 **Example**:
 ```bash
-# Using the Java version
+# Generate 1000 files with a combined size of 20MB (roughly).
+# For each 12 files, one dir is created.
+# The maximal depth of the hierarchy is 6.
+# All files and dirs are created inside the directory test-data.
 ./fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy --size 20mb --count 1000 --ratio-dir-to-files 12 --depth 6 test-data
 ```
 
