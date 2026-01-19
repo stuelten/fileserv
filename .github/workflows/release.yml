@@ -25,20 +25,26 @@ jobs:
           distribution: 'graalvm'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: 'true'
-
+          
       - name: Estimate Version
-        id: estimate_version
+        id: version_estimate
         run: |
-          chmod +x bin/estimate-version.sh
-          ESTIMATED_VERSION=$(./bin/estimate-version.sh)
-          INPUT_VERSION="${{ github.event.inputs.version }}"
-          VERSION=${INPUT_VERSION:-$ESTIMATED_VERSION}
-          echo "ESTIMATED_VERSION=$ESTIMATED_VERSION"
-          echo "INPUT_VERSION=$INPUT_VERSION"
+          chmod +x bin/version-estimate.sh
+          VERSION_ESTIMATED=$(./bin/version-estimate.sh)
+          VERSION_INPUT="${{ github.event.inputs.version }}"
+          VERSION=${VERSION_INPUT:-$VERSION_ESTIMATED}
+          echo "VERSION_ESTIMATED=$VERSION_ESTIMATED"
+          echo "VERSION_INPUT=$VERSION_INPUT"  
           echo "VERSION=$VERSION"
           
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Log version
+        id: log_version
+        run: |
+          echo "Version to build: ${{ steps.version_estimate.outputs.VERSION }}"
+          echo "Version to build: ${VERSION}"
 
       - name: Build and Release
         env:
@@ -46,3 +52,8 @@ jobs:
         run: |
           chmod +x bin/build-and-release.sh
           ./bin/build-and-release.sh ${{ env.VERSION }}
+
+      - name: Log result
+        id: log_result
+        run: |
+          find . -type d -name target -print0 | xargs -0 ls -al
