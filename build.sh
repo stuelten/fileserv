@@ -33,17 +33,6 @@ fi
 ./mvnw $MVN_GOALS -DskipTests=false $MAVEN_ARGS
 
 echo ""
-echo "=== Running Bats Tests for Scripts and Native Apps ==="
-# Check if bats is installed
-if command -v bats >/dev/null 2>&1; then
-    # Run tests for shell scripts
-    bats test/*.bats
-else
-    echo "Warning: bats not found. Skipping script tests."
-    echo "To run these tests, install Bats: https://github.com/bats-core/bats-core"
-fi
-
-echo ""
 echo "=== Building Docker Image ==="
 # Use docker or podman
 DOCKER_CMD=$(command -v docker || command -v podman || true)

@@ -14,10 +14,6 @@
 
     <description>CLI for managing Samba passwd files</description>
 
-    <properties>
-        <picocli.version>4.7.6</picocli.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>de.sty</groupId>
@@ -27,7 +23,6 @@
         <dependency>
             <groupId>info.picocli</groupId>
             <artifactId>picocli</artifactId>
-            <version>${picocli.version}</version>
         </dependency>
     </dependencies>
 

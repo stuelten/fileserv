@@ -107,7 +107,7 @@ public class HierarchyGenerator implements Callable<Integer> {
                 if (d == depth) subCount = 0;
 
                 for (int i = 0; i < subCount; i++) {
-                    Path dirName = parent.resolve("dir_" + d + "_" + i + "_" + random.nextInt(10000));
+                    Path dirName = parent.resolve("testdir_" + d + "_" + i + "_" + random.nextInt(10000));
                     Files.createDirectories(dirName);
                     nextDepthDirs.add(dirName);
                     createdDirs.add(dirName);
@@ -120,17 +120,20 @@ public class HierarchyGenerator implements Callable<Integer> {
 
         // Fill the remaining directories randomly
         int failSafe = 0;
-        while (dirsToCreate > 0 && failSafe < 1000) {
+        while (dirsToCreate > 0 && failSafe < 1000000) {
             Path parent = createdDirs.get(random.nextInt(createdDirs.size()));
             int currentDepth = targetDir.relativize(parent).getNameCount();
             if (parent.equals(targetDir)) currentDepth = 0;
 
             if (currentDepth < depth) {
-                Path subDirName = parent.resolve("extra_dir_" + dirsToCreate);
+                Path subDirName = parent.resolve("testdir_extra_" + dirsToCreate + "_" + random.nextInt(10000));
                 if (!Files.exists(subDirName)) {
                     Files.createDirectories(subDirName);
                     createdDirs.add(subDirName);
                     dirsToCreate--;
+                    failSafe = 0;
+                } else {
+                    failSafe++;
                 }
             } else {
                 failSafe++;
@@ -141,7 +144,7 @@ public class HierarchyGenerator implements Callable<Integer> {
         long remainingSizeBytes = sizeBytes;
         for (int i = 0; i < numFiles; i++) {
             Path parent = createdDirs.get(random.nextInt(createdDirs.size()));
-            Path fileName = parent.resolve("file_" + i + ".bin");
+            Path fileName = parent.resolve("testfile_" + i + ".bin");
 
             long size;
             if (i == numFiles - 1) {
@@ -168,7 +171,7 @@ public class HierarchyGenerator implements Callable<Integer> {
         }
         try (RandomAccessFile raf = new RandomAccessFile(path.toFile(), "rw")) {
             raf.setLength(size);
-            // Optionally fill with random data. The bash script uses /dev/urandom.
+            // Optionally fill with random data.
             // For large files, filling with random data can be slow.
             // Let's at least write some random bytes if it's small, or just seek and write one byte at the end.
             byte[] buffer = new byte[(int) Math.min(size, 1024)];
@@ -176,7 +179,7 @@ public class HierarchyGenerator implements Callable<Integer> {
             raf.write(buffer);
             if (size > buffer.length) {
                 raf.seek(size - 1);
-                raf.write(0);
+                raf.write(255);
             }
         }
     }
@@ -206,4 +209,5 @@ public class HierarchyGenerator implements Callable<Integer> {
         int exitCode = new CommandLine(new HierarchyGenerator()).execute(args);
         System.exit(exitCode);
     }
+
 }

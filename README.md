@@ -150,8 +150,7 @@ You can also use:
 
 ### Build and Test
 
-You can run all tests (Bats for scripts and Maven for Java)
-and build the project and Docker image
+You can run all tests and build the project and Docker image
 using the provided `build.sh` script:
 
 ```bash
@@ -160,18 +159,8 @@ using the provided `build.sh` script:
 
 ### Test Data Generator
 
-The project includes two versions of a utility to generate random directory hierarchies for testing purposes:
-a Bash script and a Java-based native executable.
-Both support the same command-line parameters.
-
-#### Bash Version
-
-**Location**: `bin/fileserv-test-generate-hierarchy`
-
-**Usage**:
-```bash
-./bin/fileserv-test-generate-hierarchy [OPTIONS] <target_dir>
-```
+The project includes a utility to generate random directory hierarchies for testing purposes.
+You can build it either as überjar/fat-jar or as a Java-based native executable.
 
 #### Java Version (Native Executable)
 
