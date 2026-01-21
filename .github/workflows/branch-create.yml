@@ -1,0 +1,23 @@
+name: Create Branch from Issue
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  create-branch:
+    if: contains(github.event.issue.labels.*.name, 'feature') || contains(github.event.issue.labels.*.name, 'bug')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create Branch
+        run: |
+          ISSUE_NUMBER=${{ github.event.issue.number }}
+          ISSUE_TITLE=${{ github.event.issue.title }}
+          LABELS="${{ join(github.event.issue.labels.*.name, ',') }}"
+          if [[ $LABELS == *"feature"* ]]; then
+            BRANCH_NAME="feature/$ISSUE_NUMBER-${ISSUE_TITLE// /-}"
+          elif [[ $LABELS == *"bug"* ]]; then
+            BRANCH_NAME="bugfix/$ISSUE_NUMBER-${ISSUE_TITLE// /-}"
+          fi
+          git checkout -b "$BRANCH_NAME"
+          git push origin "$BRANCH_NAME"
