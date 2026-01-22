@@ -1,0 +1,83 @@
+#!/bin/bash
+#
+# Extract a field from GitHub issue JSON.
+#
+# Usage: bin/issue-data-get-field.sh <field>
+# <field> can be 'title' or 'label'.
+# JSON data is read from stdin.
+
+VERBOSE=false
+
+log() {
+    if [[ "$VERBOSE" == "true" ]]; then
+        echo "$@" >&2
+    fi
+}
+
+error() {
+    echo "ERROR: $*" >&2
+    exit 1
+}
+
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") [options] <field>
+
+Extract a field from GitHub issue JSON.
+
+Options:
+  -h, --help    Show this help message and exit.
+  -v, --verbose Show verbose log messages.
+
+Arguments:
+  <field>       The field to extract: 'title' or 'label'.
+
+Input:
+  Expects GitHub issue JSON data on stdin.
+
+Example:
+  bin/issue-data-read.sh --json 123 | $(basename "$0") title
+EOF
+}
+
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -v|--verbose)
+            VERBOSE=true
+            shift
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+FIELD=$1
+
+if [[ -z "$FIELD" ]]; then
+    error "No field specified. Use 'title' or 'label'."
+fi
+
+# Read JSON from stdin
+log "Reading JSON from stdin for field: $FIELD"
+DATA=$(cat)
+
+if [[ -z "$DATA" ]]; then
+    error "No JSON data received on stdin"
+fi
+
+case "$FIELD" in
+    title)
+        echo "$DATA" | jq -r '.title'
+        ;;
+    label)
+        echo "$DATA" | jq -r '.labels[0].name // ""'
+        ;;
+    *)
+        error "Unknown field '$FIELD'. Supported fields: title, label."
+        ;;
+esac
