@@ -2,7 +2,7 @@
 #
 # Extract a field from GitHub issue JSON.
 #
-# Usage: bin/issue-data-get-field.sh <field>
+# Usage: bin/gh-issue-data-field-read.sh <field>
 # <field> can be 'title' or 'label'.
 # JSON data is read from stdin.
 
@@ -30,7 +30,8 @@ Options:
   -v, --verbose Show verbose log messages.
 
 Arguments:
-  <field>       The field to extract: 'title' or 'label'.
+  <field>       The field to extract. Supported fields:
+                title, state, created_at, author, assignee, label.
 
 Input:
   Expects GitHub issue JSON data on stdin.
@@ -74,10 +75,22 @@ case "$FIELD" in
     title)
         echo "$DATA" | jq -r '.title'
         ;;
+    state)
+        echo "$DATA" | jq -r '.state'
+        ;;
+    created_at)
+        echo "$DATA" | jq -r '.created_at'
+        ;;
+    author)
+        echo "$DATA" | jq -r '.user.login'
+        ;;
+    assignee)
+        echo "$DATA" | jq -r '.assignee.login'
+        ;;
     label)
         echo "$DATA" | jq -r '.labels[0].name // ""'
         ;;
     *)
-        error "Unknown field '$FIELD'. Supported fields: title, label."
+        error "Unknown field '$FIELD'. Supported fields: title, state, created_at, author, assignee, label."
         ;;
 esac

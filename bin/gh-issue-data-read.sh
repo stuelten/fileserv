@@ -1,16 +1,13 @@
 #!/bin/bash
 #
-# Read title and label from a GitHub issue and print out as
-#
-# TITLE="abc"
-# LABEL="xyz"
+# Read data from a GitHub issue.
 #
 # Parameters:
 # API token must be set in TOKEN env var OR TOKEN_FILE env var (path to file)
 # GITHUB_REPO env var can be set to "owner/repo" (defaults to discovery via git remote)
 # Issue number must be given as the only parameter.
 # If --json is given as the first parameter, it outputs the full JSON from GitHub.
-# If -h or --help is given, it displays this help message.
+# If -h or --help is given, it displays a help message.
 
 VERBOSE=false
 
@@ -44,7 +41,7 @@ Environment Variables:
 
 Examples:
   TOKEN=ghp_... $(basename "$0") 123
-  $(basename "$0") --json 123 | bin/issue-data-get-field.sh title
+  $(basename "$0") --json 123 | bin/issue-data-field-read.sh title
 EOF
 }
 
