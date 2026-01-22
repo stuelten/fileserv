@@ -2,22 +2,52 @@
 
 ## Storage
 
+Build a real storage system and not only a filesystem-based showcase.
+
+### Storage into different backends
+
+1. Store files simply in a given data directory. No rocket science.
+2. Store files in multiple locations with bigger redundancy.
+3. Store files remotely in some storage.
+4. Store files in-memory.
+
+### Combine multiple backends for redundancy and performance
+
+1. Use the in-memory backend for caching
+   and the file system backend for persistence.
+2. Use storage classes to manage speed and redundancy. 
+
 ### Storage with fine-grained access control
 
+Use sidecar files or metadate table to store permissions.
+Use hierarchy to set permissions for lower levels.
+Use file tags, user/group roles and some mapping to manage permissions.
+
 ### Storage with automatic processing of files
+
+Create previews for images.
+Create thumbnails for videos.
+Do some OCR for scans.
+Create resumes for documents via some AI tool.
+Extract metadata from documents.
 
 ## Authentication
 
 ### OAuth Authenticator
 
+Authenticate against some OAuth provider.
+
 ### OAuth Backend
+
+Implement an simple OAuth backend.
 
 ## Tests
 
 ### A performance tester
 
 Add module fileserv-test-performance.
-It should create a product like fileserv-test-generate-hierarchy, a native binary when built via native profile.
+It should create a product like fileserv-test-generate-hierarchy,
+a native binary when built via native profile.
 
 The module should test basic operations (like the CRUD tester below),
 but with a focus on performance.
