@@ -8,10 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Worked on GitHub Action for branch creation [2489dda](https://github.com/stuelten/fileserv/commit/2489ddacc774c83eaa7e3ac0b18eca394074fa15)  
-  `bin/issue-data-read.sh`: Read issue data from GitHub API with automatic repository discovery.  
-  `bin/issue-data-get-field.sh`: New script to safely extract fields (title, label) from JSON data,
-  avoiding shell injection risks.
+- Use `slf4j-simple` in SMB password module for log output.
+- Worked on GitHub Action for branch creation [2489dda](https://github.com/stuelten/fileserv/commit/2489ddacc774c83eaa7e3ac0b18eca394074fa15),
+  `bin/issue-data-read.sh`: Read issue data as JSON from GitHub API with automatic repository discovery.
+  `bin/issue-data-get-field.sh`: Extracts fields (title, label) from JSON data
 
 ## [0.2.0] - 2026-01-22
 
