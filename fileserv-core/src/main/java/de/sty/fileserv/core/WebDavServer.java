@@ -68,7 +68,7 @@ public final class WebDavServer {
         ctx.addFilter(new FilterHolder(new FileServVersionFilter()),
                 "/*", EnumSet.of(DispatcherType.REQUEST));
 
-        ctx.addFilter(new FilterHolder(new BasicAuthFilter(cfg.authenticator(), cfg.behindProxy())),
+        ctx.addFilter(new FilterHolder(new BasicAuthFilter(cfg.authenticator(), cfg.behindProxy(), cfg.allowHttp())),
                 "/*", EnumSet.of(DispatcherType.REQUEST));
 
         ctx.addServlet(WebDavServlet.class, "/*")

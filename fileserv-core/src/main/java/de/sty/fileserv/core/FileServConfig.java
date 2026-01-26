@@ -5,6 +5,7 @@ import java.nio.file.Path;
 public record FileServConfig(
         Path dataDir,
         boolean behindProxy,
+        boolean allowHttp,
         int httpPort,
         int httpsPort,
         String keyStorePath,

@@ -87,6 +87,7 @@ class HttpsSmokeTest {
         server = WebDavServer.build(new FileServConfig(
                 tempDir,
                 false,     // not behind proxy; we want actual TLS termination in Java
+                false,     // allowHttp
                 -1,
                 0,
                 ks,

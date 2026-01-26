@@ -1,0 +1,28 @@
+name: start-test-setup
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'true'
+
+      - name: Build and Run Full Test Setup
+        run: |
+          chmod +x test/run-full-test.sh
+          ./test/run-full-test.sh
+
+      - name: Check container logs on failure
+        if: failure()
+        run: |
+          docker compose logs || docker-compose logs || podman-compose logs || true

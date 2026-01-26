@@ -15,7 +15,7 @@ class BasicAuthFilterTest {
 
     @Test
     void shouldRejectNonHttps() throws Exception {
-        BasicAuthFilter filter = new BasicAuthFilter((u, p) -> true, false);
+        BasicAuthFilter filter = new BasicAuthFilter((u, p) -> true, false, false);
         ServletStubs.StubHttpServletRequest request = new ServletStubs.StubHttpServletRequest();
         request.setSecure(false);
         
@@ -34,7 +34,7 @@ class BasicAuthFilterTest {
 
     @Test
     void shouldAcceptHttpsViaHeader() throws Exception {
-        BasicAuthFilter filter = new BasicAuthFilter((u, p) -> true, true);
+        BasicAuthFilter filter = new BasicAuthFilter((u, p) -> true, true, false);
         ServletStubs.StubHttpServletRequest request = new ServletStubs.StubHttpServletRequest();
         request.setSecure(false);
         request.setHeader("X-Forwarded-Proto", "https");
@@ -48,7 +48,7 @@ class BasicAuthFilterTest {
 
     @Test
     void shouldChallengeWhenNoAuthHeader() throws Exception {
-        BasicAuthFilter filter = new BasicAuthFilter((u, p) -> true, false);
+        BasicAuthFilter filter = new BasicAuthFilter((u, p) -> true, false, false);
         ServletStubs.StubHttpServletRequest request = new ServletStubs.StubHttpServletRequest();
         request.setSecure(true);
         
@@ -72,7 +72,7 @@ class BasicAuthFilterTest {
 
     @Test
     void shouldRejectInvalidCredentials() throws Exception {
-        BasicAuthFilter filter = new BasicAuthFilter((u, p) -> false, false);
+        BasicAuthFilter filter = new BasicAuthFilter((u, p) -> false, false, false);
         ServletStubs.StubHttpServletRequest request = new ServletStubs.StubHttpServletRequest();
         request.setSecure(true);
         request.setHeader("Authorization", AUTH_PREFIX_BASIC + Base64.getEncoder().encodeToString("wrong:pass".getBytes(StandardCharsets.UTF_8)));

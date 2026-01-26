@@ -37,6 +37,13 @@ echo "=== Building Docker Image ==="
 # Use docker or podman
 DOCKER_CMD=$(command -v docker || command -v podman || true)
 if [ -n "$DOCKER_CMD" ]; then
+    if [[ "$DOCKER_CMD" == *"podman"* ]]; then
+        echo "Checking Podman machine..."
+        if ! podman machine inspect --format '{{.State}}' | grep -q "running"; then
+            echo "Starting Podman machine..."
+            podman machine start || true
+        fi
+    fi
     "$DOCKER_CMD" build -t fileserv .
 else
     echo "Warning: Neither docker nor podman found. Skipping Docker build."

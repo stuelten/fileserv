@@ -13,10 +13,12 @@ import static de.sty.fileserv.core.WebDavConstants.*;
 public final class BasicAuthFilter implements Filter {
     private final Authenticator authenticator;
     private final boolean behindProxy;
+    private final boolean allowHttp;
 
-    public BasicAuthFilter(Authenticator authenticator, boolean behindProxy) {
+    public BasicAuthFilter(Authenticator authenticator, boolean behindProxy, boolean allowHttp) {
         this.authenticator = authenticator;
         this.behindProxy = behindProxy;
+        this.allowHttp = allowHttp;
     }
 
     private static void challenge(HttpServletResponse res) throws IOException {
@@ -32,7 +34,7 @@ public final class BasicAuthFilter implements Filter {
         HttpServletResponse res = (HttpServletResponse) response;
 
         // Require external HTTPS for Basic Auth
-        if (!isExternallySecure(req)) {
+        if (!allowHttp && !isExternallySecure(req)) {
             res.sendError(SC_403_FORBIDDEN, "HTTPS required");
             return;
         }

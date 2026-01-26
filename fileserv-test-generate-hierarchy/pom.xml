@@ -52,7 +52,18 @@
                                     <mainClass>de.sty.fileserv.test.hierarchy.HierarchyGenerator</mainClass>
                                 </transformer>
                             </transformers>
-                            <finalName>fileserv-test-generate-hierarchy-runner</finalName>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <finalName>fileserv-test-generate-hierarchy</finalName>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
                         </configuration>
                     </execution>
                 </executions>

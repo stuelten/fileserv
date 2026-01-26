@@ -38,6 +38,7 @@ class WebDavIntegrationTest {
         server = WebDavServer.build(new FileServConfig(
                 tempDir,
                 true,   // behindProxy
+                true,   // allowHttp (for testing)
                 0,      // httpPort: 0 => let Jetty choose? (we’ll set connector port after start)
                 0,
                 null, null, null,

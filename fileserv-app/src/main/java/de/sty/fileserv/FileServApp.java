@@ -68,6 +68,9 @@ public class FileServApp implements Callable<Integer> {
     @Option(names = {"--behind-proxy"}, description = "Trust X-Forwarded-* headers", defaultValue = "true")
     private boolean behindProxy;
 
+    @Option(names = {"--allow-http"}, description = "Allow Basic Auth over insecure HTTP (not recommended for production)", defaultValue = "false")
+    private boolean allowHttp;
+
     // Set by PicoCLI
     @SuppressWarnings("unused")
     @Option(names = {"--passwd"}, description = "Path to a passwords file")
@@ -114,6 +117,7 @@ public class FileServApp implements Callable<Integer> {
         FileServConfig cfg = new FileServConfig(
                 dataDir,
                 behindProxy,
+                allowHttp,
                 httpPort,
                 httpsPort,
                 keyStorePath,
@@ -138,6 +142,7 @@ public class FileServApp implements Callable<Integer> {
         LOG.info("  DataDir: {}", dataDir);
         LOG.info("  Auth: {}", authenticator);
         LOG.info("  behindProxy={}", behindProxy);
+        LOG.info("  allowHttp={}", allowHttp);
 
         server.start();
         LOG.info("File server runs...");

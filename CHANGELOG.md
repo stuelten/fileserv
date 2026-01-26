@@ -8,10 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Use `slf4j-simple` in SMB password module for log output.
-- Worked on GitHub Action for branch creation [2489dda](https://github.com/stuelten/fileserv/commit/2489ddacc774c83eaa7e3ac0b18eca394074fa15),
-  `bin/issue-data-read.sh`: Read issue data as JSON from GitHub API with automatic repository discovery.
-  `bin/issue-data-get-field.sh`: Extracts fields (title, label) from JSON data
+- External configuration directory support for Docker container setup (mapping to `/app/etc`).
+- Automation script `test/run-full-test.sh` for full environment setup, data generation, and WebDAV testing.
+- GitHub Action "start-test-setup" for automated testing.
+- Shaded executable JARs for CLI tools (`fileserv-smbpasswd`, `fileserv-test-generate-hierarchy`, `fileserv-test-webdav`).
+- Option `--allow-http` to allow Basic Authentication over insecure connections (for testing/local dev).
+
+### Fixed
+- Invalid signature errors in shaded JARs by excluding `META-INF/*.SF`, `*.DSA`, `*.RSA`.
+- Versioned JAR names handling in test scripts.
+- Docker entrypoint now correctly picks up external authentication configurations.
 
 ## [0.2.0] - 2026-01-22
 

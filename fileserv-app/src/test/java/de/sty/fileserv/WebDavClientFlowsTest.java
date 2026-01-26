@@ -40,6 +40,7 @@ class WebDavClientFlowsTest {
         server = WebDavServer.build(new FileServConfig(
                 tempDir,
                 true,   // behindProxy
+                true,   // allowHttp (for testing)
                 0,
                 0,
                 null, null, null,

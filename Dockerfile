@@ -1,10 +1,18 @@
 FROM eclipse-temurin:21-jre
 WORKDIR /app
+
 COPY fileserv-app/target/fileserv-app.jar fileserv-app.jar
 COPY fileserv-core/target/classes/version.properties ./
-COPY fileserv-passwd* ./
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
+
+# r/o config goes into config
+RUN mkdir -p /app/config
+COPY config/* /app/config/
+
+# r/w config read from etc
+RUN mkdir -p /app/etc
+VOLUME ["/app/etc"]
 
 # Create data directory
 RUN mkdir -p /app/data
