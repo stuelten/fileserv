@@ -11,6 +11,9 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      # needs to write tags
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK
