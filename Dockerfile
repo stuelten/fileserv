@@ -7,8 +7,7 @@ COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
 # r/o config goes into config
-RUN mkdir -p /app/config
-COPY config/* /app/config/
+COPY config/ /app/config/
 
 # r/w config read from etc
 RUN mkdir -p /app/etc
