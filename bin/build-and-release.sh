@@ -73,36 +73,21 @@ git push origin "v$VERSION"
 echo "Creating GitHub Release..."
 if command -v gh >/dev/null 2>&1; then
     gh release create "v$VERSION" \
-        fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy \
-        --title "Version $VERSION" \
-        --notes "Automated release of version $VERSION"
+      fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd \
+      --title "Version $VERSION" \
+      --notes "Automated release of version $VERSION"
+
+    gh release create "v$VERSION" \
+      fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy \
+      --title "Version $VERSION" \
+      --notes "Automated release of version $VERSION"
+
+    gh release create "v$VERSION" \
+      fileserv-test-webdav/target/fileserv-test-webdav \
+      --title "Version $VERSION" \
+      --notes "Automated release of version $VERSION"
 else
     echo "Warning: gh CLI not found. Skipping GitHub Release creation."
-fi
-
-# 6. Update Homebrew formula (optional, requires TAP_DIR environment variable)
-if [ -n "$TAP_DIR" ]; then
-    echo "Updating Homebrew formula in $TAP_DIR..."
-    BINARY_URL="https://github.com/stuelten/fileserv/releases/download/v$VERSION/fileserv-test-generate-hierarchy"
-    SHA256=$(shasum -a 256 fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy | awk '{print $1}')
-    FORMULA_FILE="$TAP_DIR/Formula/fileserv-test-apps.rb"
-
-    if [ -f "$FORMULA_FILE" ]; then
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            sed -i '' "s/version \".*\"/version \"$VERSION\"/" "$FORMULA_FILE"
-            sed -i '' "s|url \".*\"|url \"$BINARY_URL\"|" "$FORMULA_FILE"
-            sed -i '' "s/sha256 \".*\"/sha256 \"$SHA256\"/" "$FORMULA_FILE"
-        else
-            sed -i "s/version \".*\"/version \"$VERSION\"/" "$FORMULA_FILE"
-            sed -i "s|url \".*\"|url \"$BINARY_URL\"|" "$FORMULA_FILE"
-            sed -i "s/sha256 \".*\"/sha256 \"$SHA256\"/" "$FORMULA_FILE"
-        fi
-
-        (cd "$TAP_DIR" && git add Formula/fileserv-test-apps.rb && git commit -m "Release fileserv-test-apps $VERSION" && git push origin main)
-        echo "Homebrew formula updated."
-    else
-        echo "Warning: Formula file not found at $FORMULA_FILE"
-    fi
 fi
 
 echo "Release $VERSION completed successfully."
