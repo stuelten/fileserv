@@ -109,15 +109,18 @@ else
   if [ -n "$DOCKER_CMD" ]; then
     if [[ "$DOCKER_CMD" == *"podman"* ]]; then
       log "Checking Podman machine..."
+      if [ "$QUIET" = true ]; then
+        DOCKER_BUILD_OPTS="--quiet --log-level warn"
+      fi
       if ! podman machine inspect --format '{{.State}}' | grep -q "running"; then
         log "Starting Podman machine..."
         podman machine start || true
       fi
     fi
     DOCKER_BUILD_OPTS=""
-    if [ "$QUIET" = true ]; then
-      DOCKER_BUILD_OPTS="--quiet --log-level warn"
-    fi
+#    if [ "$QUIET" = true ]; then
+#      DOCKER_BUILD_OPTS="$DOCKER_BUILD_OPTS --quiet"
+#    fi
     # shellcheck disable=SC2086
     "$DOCKER_CMD" build $DOCKER_BUILD_OPTS -t fileserv "$SCRIPT_DIR/.." || error "Error build docker"
   else

@@ -30,7 +30,9 @@ jobs:
       - name: Increase Version
         id: version_increase
         run: |
-          chmod +x bin/version-increase-semver.sh
+          chmod +x bin/version-*.sh
+          echo "Current version:  $(./bin/version-get.sh)
+
           VERSION_INCREASED=$(./bin/version-increase-semver.sh)
           VERSION_INPUT="${{ github.event.inputs.version }}"
           VERSION=${VERSION_INPUT:-$VERSION_INCREASED}
@@ -44,8 +46,7 @@ jobs:
       - name: Log version
         id: log_version
         run: |
-          echo "Version to build: ${{ steps.version_increase.outputs.VERSION }}"
-          echo "Version to build: ${VERSION}"
+          echo "Version to build: ${env.VERSION}"
 
       - name: Build and Release
         env:
