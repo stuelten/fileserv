@@ -4,8 +4,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,7 +41,7 @@ class InsecureFileAuthenticatorTest {
         assertThat(auth.authenticate("bob", "pass123")).isTrue();
         // The second field is password, third field not used
         assertThat(auth.authenticate("admin", "admin")).isTrue();
-        
+
         assertThat(auth.authenticate("alice", "wrong")).isFalse();
         assertThat(auth.authenticate("unknown", "secret")).isFalse();
     }
@@ -50,16 +50,14 @@ class InsecureFileAuthenticatorTest {
     void throwsExceptionOnNonExistentFile() {
         Path missingFile = tempDir.resolve("missing.txt");
         PrintStream originalErr = System.err;
+        ByteArrayOutputStream errContent = new ByteArrayOutputStream();
         try {
-            System.setErr(new PrintStream(new OutputStream() {
-                @Override
-                public void write(int b) {
-                    // ignore
-                }
-            }));
+            System.setErr(new PrintStream(errContent));
             Assertions.assertThrows(IllegalArgumentException.class, () ->
                     new InsecureFileAuthenticator(missingFile)
             );
+            assertThat(errContent.toString()).contains("Authentication file does not exist");
+            assertThat(errContent.toString()).contains(missingFile.toString());
         } finally {
             System.setErr(originalErr);
         }
@@ -95,6 +93,7 @@ class InsecureFileAuthenticatorTest {
 
         int threadCount = 10;
         int iterations = 1000;
+        @SuppressWarnings("resource")
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         CountDownLatch startLatch = new CountDownLatch(1);
         CountDownLatch endLatch = new CountDownLatch(threadCount);

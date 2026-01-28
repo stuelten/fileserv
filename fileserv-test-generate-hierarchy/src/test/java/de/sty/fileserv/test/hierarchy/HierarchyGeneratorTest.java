@@ -7,7 +7,9 @@ import org.junit.jupiter.api.io.CleanupMode;
 import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
@@ -193,7 +195,6 @@ class HierarchyGeneratorTest {
     @Test
     void testParseSize() {
         HierarchyGenerator generator = new HierarchyGenerator();
-        generator.quiet = true;
 
         // Default MB
         assertThat(generator.parseSize("10")).isEqualTo(10L * 1024 * 1024);
@@ -211,13 +212,34 @@ class HierarchyGeneratorTest {
         assertThat(generator.parseSize("2gb")).isEqualTo(2L * 1024 * 1024 * 1024);
         assertThat(generator.parseSize("2GB")).isEqualTo(2L * 1024 * 1024 * 1024);
 
-        // Invalid inputs
+    }
+
+    @Test
+    void testParseSizeInvalidInputs() {
+        HierarchyGenerator generator = new HierarchyGenerator();
+
         // Note: parseSize calls error() which might fail if spec is not initialized,
-        // but here we just check if it returns -1 as per implementation for invalid numeric strings.
         // Actually, for strings that don't match the pattern and aren't parseable as Long, it returns -1.
-        assertThat(generator.parseSize("invalid")).isEqualTo(-1L);
-        assertThat(generator.parseSize("10tb")).isEqualTo(-1L);
-        assertThat(generator.parseSize("999999999999999999999999999")).isEqualTo(-1L);
+
+        PrintStream originalErr = System.err;
+        ByteArrayOutputStream errContent = new ByteArrayOutputStream();
+        try {
+            System.setErr(new PrintStream(errContent));
+            assertThat(generator.parseSize("invalid")).isEqualTo(-1L);
+            assertThat(errContent.toString()).contains("Cannot parse size");
+            errContent.reset();
+
+            assertThat(generator.parseSize("10tb")).isEqualTo(-1L);
+            assertThat(errContent.toString()).contains("Cannot parse size");
+            errContent.reset();
+
+            assertThat(generator.parseSize("999999999999999999999999999")).isEqualTo(-1L);
+            assertThat(errContent.toString()).contains("Size value too large");
+            errContent.reset();
+        } finally {
+            System.setErr(originalErr);
+        }
+
     }
 
     private long getTotalSize(Path path) throws IOException {
