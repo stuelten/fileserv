@@ -72,6 +72,7 @@ public class HierarchyGenerator implements Callable<Integer> {
     public Integer call() throws Exception {
         long sizeBytes = parseSize(sizeStr);
         if (sizeBytes < 0 || count <= 0 || ratio < 0 || depth < 0) {
+            error("ERROR: Cannot generate hierarchy with negative size, zero or negative count, negative ratio, or negative depth.");
             CommandLine.usage(this, System.err);
             return 1;
         }

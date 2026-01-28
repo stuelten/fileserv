@@ -169,12 +169,37 @@ class HierarchyGeneratorTest {
     }
 
     @Test
+    void testFailsOnMissingParameter() {
+        String[] args = {"--size", "1", "--count", "1"};
+
+        PrintStream originalErr = System.err;
+        ByteArrayOutputStream errContent = new ByteArrayOutputStream();
+        try {
+            System.setErr(new PrintStream(errContent));
+            int exitCode = new CommandLine(new HierarchyGenerator()).execute(args);
+            assertThat(exitCode).isNotEqualTo(0);
+            assertThat(errContent.toString()).contains("Missing required parameter:");
+        } finally {
+            System.setErr(originalErr);
+        }
+    }
+
+
+    @Test
     void testFailsOnInvalidArguments() {
-        String[] args = {"-q", "--size", "0", "--count", "0"};
+        String[] args = {"--size", "0", "--count", "0", testDir.toString()};
 
-        int exitCode = new CommandLine(new HierarchyGenerator()).execute(args);
-
-        assertThat(exitCode).isNotEqualTo(0);
+        PrintStream originalErr = System.err;
+        ByteArrayOutputStream errContent = new ByteArrayOutputStream();
+        try {
+            System.setErr(new PrintStream(errContent));
+            int exitCode = new CommandLine(new HierarchyGenerator()).execute(args);
+            assertThat(exitCode).isNotEqualTo(0);
+            assertThat(errContent.toString()).contains("ERROR:");
+            assertThat(errContent.toString()).contains("zero or negative count");
+        } finally {
+            System.setErr(originalErr);
+        }
     }
 
     @Test
