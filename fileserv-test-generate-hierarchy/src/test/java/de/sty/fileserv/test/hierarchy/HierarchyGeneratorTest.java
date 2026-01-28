@@ -184,7 +184,6 @@ class HierarchyGeneratorTest {
         }
     }
 
-
     @Test
     void testFailsOnInvalidArguments() {
         String[] args = {"--size", "0", "--count", "0", testDir.toString()};
@@ -259,7 +258,7 @@ class HierarchyGeneratorTest {
             errContent.reset();
 
             assertThat(generator.parseSize("999999999999999999999999999")).isEqualTo(-1L);
-            assertThat(errContent.toString()).contains("Size value too large");
+            assertThat(errContent.toString()).contains("Cannot parse size");
             errContent.reset();
         } finally {
             System.setErr(originalErr);

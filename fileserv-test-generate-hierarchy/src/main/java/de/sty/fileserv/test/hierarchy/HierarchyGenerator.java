@@ -154,7 +154,7 @@ public class HierarchyGenerator implements Callable<Integer> {
             }
         }
         log(verbose, "INFO: Building the directory structure finished.");
-        
+
         log(verbose, "INFO:Creating %d files...%n".formatted(numFiles));
         // Step 2: Distribute files and data
         long remainingSizeBytes = sizeBytes;
@@ -201,32 +201,33 @@ public class HierarchyGenerator implements Callable<Integer> {
         }
     }
 
+    @SuppressWarnings("DuplicateBranchesInSwitch")
     long parseSize(String sizeMaybeWithUnit) {
-        Pattern pattern = Pattern.compile("^(\\d+)([kK][bB]|[mM][bB]|[gG][bB])?$", Pattern.CASE_INSENSITIVE);
-        Matcher matcher = pattern.matcher(sizeMaybeWithUnit);
-        if (matcher.matches()) {
-            long val;
-            try {
-                val = Long.parseLong(matcher.group(1));
-            } catch (NumberFormatException e) {
-                error("ERROR: Size value too large: " + matcher.group(1));
-                return -1;
-            }
-            String unit = matcher.group(2);
-            if (unit == null) return val * 1024 * 1024; // Default MB
-            return switch (unit.toLowerCase()) {
-                case "kb" -> val * 1024;
-                case "mb" -> val * 1024 * 1024;
-                case "gb" -> val * 1024 * 1024 * 1024;
-                default -> val * 1024 * 1024;
-            };
-        }
+        long result = -1;
         try {
-            return Long.parseLong(sizeMaybeWithUnit) * 1024 * 1024;
+            Pattern pattern = Pattern.compile("^(\\d+)([kK][bB]|[mM][bB]|[gG][bB])?$", Pattern.CASE_INSENSITIVE);
+            Matcher matcher = pattern.matcher(sizeMaybeWithUnit);
+            if (matcher.matches()) {
+                long val = Long.parseLong(matcher.group(1));
+                String unit = matcher.group(2);
+                if (unit == null) {
+                    // Default MB
+                    result = val * 1024 * 1024;
+                } else {
+                    result = switch (unit.toLowerCase()) {
+                        case "kb" -> val * 1024;
+                        case "mb" -> val * 1024 * 1024;
+                        case "gb" -> val * 1024 * 1024 * 1024;
+                        default -> val * 1024 * 1024;
+                    };
+                }
+            } else {
+                result = Long.parseLong(sizeMaybeWithUnit) * 1024 * 1024;
+            }
         } catch (NumberFormatException e) {
             error("ERROR: Cannot parse size: " + sizeMaybeWithUnit);
-            return -1;
         }
+        return result;
     }
 
     private void log(boolean print, String msg) {
