@@ -2,31 +2,27 @@
 #
 # Read data from a GitHub issue.
 #
-# Parameters:
-# API token must be set in TOKEN env var OR TOKEN_FILE env var (path to file)
-# GITHUB_REPO env var can be set to "owner/repo" (defaults to discovery via git remote)
-# Issue number must be given as the only parameter.
-# If --json is given as the first parameter, it outputs the full JSON from GitHub.
-# If -h or --help is given, it displays a help message.
 
 VERBOSE=false
+QUIET=true
 
-log() {
-    if [[ "$VERBOSE" == "true" ]]; then
-        echo "$@" >&2
-    fi
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-error() {
-    echo "ERROR: $*" >&2
-    exit 1
-}
+# Source common functions
+# shellcheck source=common.sh
+source "$SCRIPT_DIR/common.sh"
 
 usage() {
     cat <<EOF
 Usage: $(basename "$0") [options] <issue-number>
 
-Read title and label from a GitHub issue.
+Read data from a GitHub issue and print it as JSON.
+The issue number must be given as the only parameter.
+
+The API token must be set directly in the TOKEN or indirectly in the TOKEN_FILE
+(path to file) environment variable.
+The GITHUB_REPO environment variable can be set to the path to use
+(usually "owner/repo"). The scripts defaults to discovery via git remote.
 
 Options:
   -h, --help    Show this help message and exit.
@@ -54,6 +50,7 @@ while [[ "$#" -gt 0 ]]; do
             ;;
         -v|--verbose)
             VERBOSE=true
+            QUIET=false
             shift
             ;;
         --json)

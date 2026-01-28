@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release (leave empty for auto-estimation)'
+        description: 'Version to release (leave empty for auto-increase)'
         required: false
         default: ''
 
@@ -27,14 +27,14 @@ jobs:
           native-image-job-reports: 'true'
           cache: 'maven'
           
-      - name: Estimate Version
-        id: version_estimate
+      - name: Increase Version
+        id: version_increase
         run: |
-          chmod +x bin/version-estimate.sh
-          VERSION_ESTIMATED=$(./bin/version-estimate.sh)
+          chmod +x bin/version-increase-semver.sh
+          VERSION_INCREASED=$(./bin/version-increase-semver.sh)
           VERSION_INPUT="${{ github.event.inputs.version }}"
-          VERSION=${VERSION_INPUT:-$VERSION_ESTIMATED}
-          echo "VERSION_ESTIMATED=$VERSION_ESTIMATED"
+          VERSION=${VERSION_INPUT:-$VERSION_INCREASED}
+          echo "VERSION_INCREASED=$VERSION_INCREASED"
           echo "VERSION_INPUT=$VERSION_INPUT"  
           echo "VERSION=$VERSION"
           
@@ -44,15 +44,15 @@ jobs:
       - name: Log version
         id: log_version
         run: |
-          echo "Version to build: ${{ steps.version_estimate.outputs.VERSION }}"
+          echo "Version to build: ${{ steps.version_increase.outputs.VERSION }}"
           echo "Version to build: ${VERSION}"
 
       - name: Build and Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          chmod +x bin/build-and-release.sh
-          ./bin/build-and-release.sh ${{ env.VERSION }}
+          chmod +x bin/release.sh
+          ./bin/release.sh ${{ env.VERSION }}
 
       - name: Log result
         id: log_result

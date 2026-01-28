@@ -7,23 +7,20 @@
 # JSON data is read from stdin.
 
 VERBOSE=false
+QUIET=true
 
-log() {
-    if [[ "$VERBOSE" == "true" ]]; then
-        echo "$@" >&2
-    fi
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-error() {
-    echo "ERROR: $*" >&2
-    exit 1
-}
+# Source common functions
+# shellcheck source=common.sh
+source "$SCRIPT_DIR/common.sh"
 
 usage() {
     cat <<EOF
 Usage: $(basename "$0") [options] <field>
 
-Extract a field from GitHub issue JSON.
+Extract a field from the GitHub issue JSON.
+See issue-data-read.sh for reading the GitHub issue.
 
 Options:
   -h, --help    Show this help message and exit.
@@ -49,6 +46,7 @@ while [[ "$#" -gt 0 ]]; do
             ;;
         -v|--verbose)
             VERBOSE=true
+            QUIET=false
             shift
             ;;
         *)

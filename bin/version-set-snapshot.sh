@@ -1,7 +1,6 @@
 #!/bin/bash
 #
 # Set a new version in maven pom.xml files.
-#
 # Either use the version given on the command line or use version-increase-semver.sh to get the next version.
 
 set -e
@@ -16,18 +15,18 @@ source "$SCRIPT_DIR/common.sh"
 cd "$SCRIPT_DIR/.."
 
 show_help() {
-  echo "Usage: ./bin/version-set.sh [OPTIONS] [major|minor|NEW_VERSION]"
+  echo "Usage: ./bin/version-set-snapshot.sh [OPTIONS] [major|minor|NEW_VERSION]"
   echo ""
-  echo "Sets a new version."   
-  echo "Updates versions in maven pom.xml files and VERSION file."
+  echo "Set a new SNAPSHOT version in maven pom.xml files."
   echo ""
   echo "Options:"
   echo "  -h, --help    Show this help message"
   echo ""
   echo "Arguments:"
   echo "  major|minor   Force a major or minor version increment."
-  echo "  NEW_VERSION   The explicit version to set."
-  echo "                If not provided, version-increase-semver.sh is used."
+  echo "  NEW_VERSION   The version to set."
+  echo "                If not provided, version-increase-semver.sh is used"
+  echo "                and '-SNAPSHOT' will be appended if not already present."
 }
 
 # Handle options
@@ -64,7 +63,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# If no version or semver arg is provided, estimate it using version-increase-semver.sh
+# If no version or semver arg is provided, increase it using version-increase-semver.sh
 if [ -z "$NEW_VERSION" ]; then
   if [ -n "$SEMVER_ARG" ]; then
     log "Increasing version ($SEMVER_ARG)..."
@@ -75,13 +74,10 @@ if [ -z "$NEW_VERSION" ]; then
   fi
 fi
 
-log "Setting version to: $NEW_VERSION"
+# Add '-SNAPSHOT' to NEW_VERSION if not already given
+if [[ ! "$NEW_VERSION" =~ -SNAPSHOT$ ]]; then
+  NEW_VERSION="${NEW_VERSION}-SNAPSHOT"
+fi
 
-# Use the Maven Wrapper to set the new version across all modules
-# -DgenerateBackupPoms=false prevents creating pom.xml.versionsBackup files
-./mvnw versions:set -DnewVersion="$NEW_VERSION" -DgenerateBackupPoms=false
-
-# Update VERSION file
-echo "$NEW_VERSION" > VERSION
-
-log "Successfully updated to version $NEW_VERSION"
+log "Setting SNAPSHOT version: $NEW_VERSION"
+bin/version-set.sh "$NEW_VERSION"

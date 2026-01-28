@@ -151,10 +151,10 @@ You can also use:
 ### Build and Test
 
 You can run all tests and build the project and Docker image
-using the provided `build.sh` script:
+using the provided `bin/build.sh` script:
 
 ```bash
-./build.sh [clean]
+./bin/build.sh [clean]
 ```
 
 ### Test Data Generator
