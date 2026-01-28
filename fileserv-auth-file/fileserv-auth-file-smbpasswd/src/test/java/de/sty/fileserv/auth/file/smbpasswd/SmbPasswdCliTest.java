@@ -24,13 +24,10 @@ class SmbPasswdCliTest {
     @Test
     void testAddUser() throws Exception {
         Path smbPasswdFile = tempDir.resolve("smbpasswd");
-        SmbPasswdCli cli = new SmbPasswdCli();
-        cli.smbPasswdFile = smbPasswdFile;
-        cli.addUser = true;
-        cli.username = "testuser";
-        cli.password = "testpass";
+        SmbPasswdCli app = new SmbPasswdCli();
+        CommandLine cmd = new CommandLine(app);
 
-        Integer exitCode = cli.call();
+        int exitCode = cmd.execute("-c", smbPasswdFile.toString(), "-a", "testuser", "testpass");
 
         assertThat(exitCode).isEqualTo(0);
         assertThat(smbPasswdFile).exists();
@@ -51,12 +48,10 @@ class SmbPasswdCliTest {
         Path smbPasswdFile = tempDir.resolve("smbpasswd");
         Files.writeString(smbPasswdFile, "testuser:1000:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX:OLDHASH:[U          ]:LCT-0\n");
 
-        SmbPasswdCli cli = new SmbPasswdCli();
-        cli.smbPasswdFile = smbPasswdFile;
-        cli.username = "testuser";
-        cli.password = "newpass";
+        SmbPasswdCli app = new SmbPasswdCli();
+        CommandLine cmd = new CommandLine(app);
 
-        Integer exitCode = cli.call();
+        int exitCode = cmd.execute("-c", smbPasswdFile.toString(), "testuser", "newpass");
 
         assertThat(exitCode).isEqualTo(0);
         List<String> lines = Files.readAllLines(smbPasswdFile);
@@ -75,15 +70,16 @@ class SmbPasswdCliTest {
         Path smbPasswdFile = tempDir.resolve("smbpasswd");
         Files.createFile(smbPasswdFile);
 
-        SmbPasswdCli cli = new SmbPasswdCli();
-        cli.smbPasswdFile = smbPasswdFile;
-        cli.username = "nonexistent";
-        cli.password = "pass";
-        cli.addUser = false;
+        SmbPasswdCli app = new SmbPasswdCli();
+        CommandLine cmd = new CommandLine(app);
 
-        Integer exitCode = cli.call();
+        StringWriter swErr = new StringWriter();
+        cmd.setErr(new PrintWriter(swErr));
+
+        int exitCode = cmd.execute("-c", smbPasswdFile.toString(), "nonexistent", "pass");
 
         assertThat(exitCode).isEqualTo(1);
+        assertThat(swErr.toString()).contains("ERROR: User 'nonexistent' not found");
     }
 
     /**

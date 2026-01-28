@@ -27,34 +27,45 @@ import java.util.regex.Pattern;
  */
 @Command(name = "fileserv-test-generate-hierarchy", mixinStandardHelpOptions = true, version = "1.0",
         description = "Create a test directory hierarchy with a lot of files, directories and data.")
+@SuppressWarnings("ClassHasNoToStringMethod")
 public class HierarchyGenerator implements Callable<Integer> {
 
+    private final Random random = new Random();
+    @CommandLine.Spec
+    CommandLine.Model.CommandSpec spec;
     // Set by PicoCLI
     @SuppressWarnings("unused")
     @Option(names = {"-s", "--size"}, description = "Total size of all files combined (e.g., 20mb, 500kb). NOTE: This is not size of each file! Default: 2mb", defaultValue = "2mb")
     private String sizeStr;
-
     // Set by PicoCLI
     @SuppressWarnings("unused")
     @Option(names = {"-c", "--count"}, description = "Total number of files and directories to create. Default: 100", defaultValue = "100")
     private int count;
-
     // Set by PicoCLI
     @SuppressWarnings("unused")
     @Option(names = {"-r", "--ratio-dir-to-files"}, description = "Ratio of files to directories (e.g., 12 means ~1 dir per 12 files). Default: 10", defaultValue = "10")
     private int ratio;
-
     // Set by PicoCLI
     @SuppressWarnings("unused")
     @Option(names = {"-d", "--depth"}, description = "Maximum depth of the directory tree. Default: 4", defaultValue = "4")
     private int depth;
-
     // Set by PicoCLI
     @SuppressWarnings("unused")
     @Parameters(index = "0", description = "Target directory")
     private Path targetDir;
+    // Set by PicoCLI
+    @SuppressWarnings("unused")
+    @Option(names = {"-q", "--quiet"}, description = "Minimize output for successful execution.")
+    private boolean quiet = false;
+    // Set by PicoCLI
+    @SuppressWarnings("unused")
+    @Option(names = {"-v", "--verbose"}, description = "Show more detailed output.")
+    private boolean verbose = false;
 
-    private final Random random = new Random();
+    public static void main(String[] args) {
+        int exitCode = new CommandLine(new HierarchyGenerator()).execute(args);
+        System.exit(exitCode);
+    }
 
     @Override
     public Integer call() throws Exception {
@@ -80,8 +91,8 @@ public class HierarchyGenerator implements Callable<Integer> {
             if (numDirs < 1) numDirs = 1; // Always at least targetDir
         }
 
-        System.out.printf("Generating %d files and %d directories (Total: %d)%n", numFiles, numDirs, count);
-        System.out.printf("Target size: %d bytes, Max depth: %d%n", sizeBytes, depth);
+        log(!quiet, "Generating %d files and %d directories (Total: %d)".formatted(numFiles, numDirs, count));
+        log(verbose, "INFO: Target size: %d bytes, Max depth: %d".formatted(sizeBytes, depth));
 
         Files.createDirectories(targetDir);
 
@@ -89,6 +100,7 @@ public class HierarchyGenerator implements Callable<Integer> {
         createdDirs.add(targetDir);
 
         int dirsToCreate = numDirs - 1;
+        log(verbose, "INFO: Building the directory structure...");
 
         // Step 1: Build the directory structure
         List<Path> currentDepthDirs = new ArrayList<>();
@@ -139,7 +151,9 @@ public class HierarchyGenerator implements Callable<Integer> {
                 failSafe++;
             }
         }
-
+        log(verbose, "INFO: Building the directory structure finished.");
+        
+        log(verbose, "INFO:Creating %d files...%n".formatted(numFiles));
         // Step 2: Distribute files and data
         long remainingSizeBytes = sizeBytes;
         for (int i = 0; i < numFiles; i++) {
@@ -160,7 +174,8 @@ public class HierarchyGenerator implements Callable<Integer> {
             remainingSizeBytes -= size;
         }
 
-        System.out.println("Generation complete.");
+        log(!quiet, "Generation complete.");
+
         return 0;
     }
 
@@ -184,30 +199,50 @@ public class HierarchyGenerator implements Callable<Integer> {
         }
     }
 
-    private long parseSize(String sizeStr) {
+    long parseSize(String sizeMaybeWithUnit) {
         Pattern pattern = Pattern.compile("^(\\d+)([kK][bB]|[mM][bB]|[gG][bB])?$", Pattern.CASE_INSENSITIVE);
-        Matcher matcher = pattern.matcher(sizeStr);
+        Matcher matcher = pattern.matcher(sizeMaybeWithUnit);
         if (matcher.matches()) {
-            long val = Long.parseLong(matcher.group(1));
+            long val;
+            try {
+                val = Long.parseLong(matcher.group(1));
+            } catch (NumberFormatException e) {
+                error("ERROR: Size value too large: " + matcher.group(1));
+                return -1;
+            }
             String unit = matcher.group(2);
             if (unit == null) return val * 1024 * 1024; // Default MB
             return switch (unit.toLowerCase()) {
                 case "kb" -> val * 1024;
-                //case "mb" -> val * 1024 * 1024;
+                case "mb" -> val * 1024 * 1024;
                 case "gb" -> val * 1024 * 1024 * 1024;
                 default -> val * 1024 * 1024;
             };
         }
         try {
-            return Long.parseLong(sizeStr) * 1024 * 1024;
+            return Long.parseLong(sizeMaybeWithUnit) * 1024 * 1024;
         } catch (NumberFormatException e) {
+            error("ERROR: Cannot parse size: " + sizeMaybeWithUnit);
             return -1;
         }
     }
 
-    public static void main(String[] args) {
-        int exitCode = new CommandLine(new HierarchyGenerator()).execute(args);
-        System.exit(exitCode);
+    private void log(boolean print, String msg) {
+        if (print) {
+            if (spec != null) {
+                spec.commandLine().getOut().println(msg);
+            } else {
+                System.out.println(msg);
+            }
+        }
+    }
+
+    private void error(String msg) {
+        if (spec != null) {
+            spec.commandLine().getErr().println(msg);
+        } else {
+            System.err.println(msg);
+        }
     }
 
 }

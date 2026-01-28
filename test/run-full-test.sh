@@ -5,11 +5,46 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../bin" && pwd)"
 
-#export QUIET=${QUIET:-false}
-
 # Source common functions
 # shellcheck source=../bin/common.sh
 source "$SCRIPT_DIR/common.sh"
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -h|--help)
+      echo "Usage: $0 [options]"
+      echo "Options:"
+      echo "  -q, --quiet    Minimize output"
+      echo "  -v, --verbose  Detailed output"
+      exit 0
+      ;;
+    -q|--quiet)
+      QUIET=true
+      shift
+      ;;
+    -v|--verbose)
+      VERBOSE=true
+      shift
+      ;;
+    *)
+      echo "Unknown option: $1"
+      exit 1
+      ;;
+  esac
+done
+
+# Pass QUIET and VERBOSE to sub-scripts
+export QUIET
+export VERBOSE
+
+JAVA_OPTS=""
+if [ "$QUIET" = true ]; then
+  JAVA_OPTS="$JAVA_OPTS --quiet"
+fi
+if [ "$VERBOSE" = true ]; then
+  JAVA_OPTS="$JAVA_OPTS --verbose"
+fi
 
 # 0. Test build and release stuff
 TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -61,7 +96,8 @@ echo "bob:secret456" >> etc/fileserv-passwd
 ## 2.2 Generate smbpasswd users
 log "Generating smbpasswd users..."
 SMB_PASSWD_JAR="fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd.jar"
-java -jar "$SMB_PASSWD_JAR" -c etc/smbpasswd -a charlie smbpass789
+# shellcheck disable=SC2086
+java -jar "$SMB_PASSWD_JAR" $JAVA_OPTS -c etc/smbpasswd -a charlie smbpass789
 
 ## 2.3 Configure smb authenticator
 log "Configuring smb authenticator..."
@@ -72,7 +108,8 @@ echo "file-smb:path=/app/etc/smbpasswd" > etc/auth/smb.conf
 log "Populating data directory..."
 rm -rf data/*
 GEN_HIERARCHY_JAR="fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy.jar"
-java -jar "$GEN_HIERARCHY_JAR" --size 5mb --count 50 --depth 3 data/
+# shellcheck disable=SC2086
+java -jar "$GEN_HIERARCHY_JAR" $JAVA_OPTS --size 5mb --count 50 --depth 3 data/
 
 # 4. Start the Docker container
 log "Starting FileServ container..."
@@ -90,10 +127,12 @@ EXIT_CODE=0
 WEBDAV_JAR="fileserv-test-webdav/target/fileserv-test-webdav.jar"
 
 log "Testing Alice (Plaintext)..."
-java -jar "$WEBDAV_JAR" http://localhost:8080/ -u alice -p password123 || EXIT_CODE=1
+# shellcheck disable=SC2086
+java -jar "$WEBDAV_JAR" $JAVA_OPTS http://localhost:8080/ -u alice -p password123 || EXIT_CODE=1
 
 log "Testing Charlie (SMB)..."
-java -jar "$WEBDAV_JAR" http://localhost:8080/ -u charlie -p smbpass789 || EXIT_CODE=1
+# shellcheck disable=SC2086
+java -jar "$WEBDAV_JAR" $JAVA_OPTS http://localhost:8080/ -u charlie -p smbpass789 || EXIT_CODE=1
 
 # 6. Cleanup
 log "Cleaning up..."

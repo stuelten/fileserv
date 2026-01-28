@@ -5,11 +5,19 @@
 ### Logging
 
 # Default QUIET to false if not set
-QUIET=${QUIET:-true}
+QUIET=${QUIET:-false}
+# Default VERBOSE to false if not set
+VERBOSE=${VERBOSE:-false}
 
 log() {
     if [ "$QUIET" = false ]; then
         echo "$*"
+    fi
+}
+
+debug() {
+    if [ "$VERBOSE" = true ]; then
+        echo "DEBUG: $*"
     fi
 }
 
@@ -42,7 +50,7 @@ test_assert() {
 
 # Call $1 and fail on error with some logging
 test_run() {
-    log "Test $1"
+    debug "Test $1"
     $1 || warn "Failed: $0 test '$1'"
 }
 

@@ -15,7 +15,11 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 @Command(name = "fileserv-smbpasswd", mixinStandardHelpOptions = true, description = "Manage Samba passwd files.")
+@SuppressWarnings("ClassHasNoToStringMethod")
 public class SmbPasswdCli implements Callable<Integer> {
+
+    @CommandLine.Spec
+    CommandLine.Model.CommandSpec spec;
 
     @Option(names = {"-c", "--file"}, description = "Path to the smbpasswd file", defaultValue = "/etc/samba/smbpasswd")
     Path smbPasswdFile;
@@ -25,6 +29,9 @@ public class SmbPasswdCli implements Callable<Integer> {
 
     @Option(names = {"-q", "--quiet"}, description = "Be quiet if no error occurs")
     boolean quiet;
+
+    @Option(names = {"-v", "--verbose"}, description = "Show more detailed output")
+    boolean verbose;
 
     @Parameters(index = "0", description = "User name")
     String username;
@@ -42,11 +49,13 @@ public class SmbPasswdCli implements Callable<Integer> {
         List<String> lines = new ArrayList<>();
         FileTime currentModified = null;
 
+        log(verbose, "INFO: Reading '" + smbPasswdFile + "'");
         if (Files.exists(smbPasswdFile)) {
             currentModified = Files.getLastModifiedTime(smbPasswdFile);
             lines = Files.readAllLines(smbPasswdFile);
         }
 
+        log(verbose, "INFO: Calculating NTLM hash");
         boolean found = false;
         String hash = SmbUtils.ntlmHash(password == null ? "" : password);
         String timestamp = Long.toHexString(Instant.now().getEpochSecond()).toUpperCase();
@@ -66,7 +75,7 @@ public class SmbPasswdCli implements Callable<Integer> {
             if (addUser) {
                 lines.add(newLine);
             } else {
-                System.err.println("ERROR: User '" + username + "' not found in '" + smbPasswdFile + "'. Use -a to add.");
+                error("ERROR: User '" + username + "' not found in '" + smbPasswdFile + "'. Use -a to add.");
                 return 1;
             }
         }
@@ -74,16 +83,32 @@ public class SmbPasswdCli implements Callable<Integer> {
         if (currentModified != null) {
             FileTime checkNotChangedConcurrently = Files.getLastModifiedTime(smbPasswdFile);
             if (!currentModified.equals(checkNotChangedConcurrently)) {
-                System.err.println("ERROR: File '" + smbPasswdFile + "' was modified concurrently. Aborting update.");
+                error("ERROR: File '" + smbPasswdFile + "' was modified concurrently. Aborting update.");
                 return 1;
             }
         }
 
         Files.write(smbPasswdFile, lines);
-        if (!quiet) {
-            System.out.println("INFO: User '" + username + "' updated in '" + smbPasswdFile + "'");
-        }
+        log(!quiet, "INFO: User '" + username + "' updated in '" + smbPasswdFile + "'");
         return 0;
+    }
+
+    private void log(boolean print, String msg) {
+        if (print) {
+            if (spec != null) {
+                spec.commandLine().getOut().println(msg);
+            } else {
+                System.out.println(msg);
+            }
+        }
+    }
+
+    private void error(String msg) {
+        if (spec != null) {
+            spec.commandLine().getErr().println(msg);
+        } else {
+            System.err.println(msg);
+        }
     }
 
 }

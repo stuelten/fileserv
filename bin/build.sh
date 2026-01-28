@@ -19,8 +19,8 @@ show_help() {
   echo "  --version                Show version information"
   echo "  --skipDocker             Skip building docker container"
   echo "  --skipTests              Skip running tests during build"
-  echo "  --quiet                  Minimize output"
-  echo "  --verbose                Show detailed output"
+  echo "  -q, --quiet              Minimize output"
+  echo "  -v, --verbose            Show detailed output"
   echo ""
   echo "Arguments:"
   echo "  clean                    Clean build artifacts before building"
@@ -32,8 +32,6 @@ CLEAN=false
 NATIVE=false
 SKIP_DOCKER=false
 SKIP_TESTS=false
-QUIET=false
-VERBOSE=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -53,11 +51,11 @@ while [[ $# -gt 0 ]]; do
     SKIP_TESTS=true
     shift
     ;;
-  --quiet)
+  -q|--quiet)
     QUIET=true
     shift
     ;;
-  --verbose)
+  -v|--verbose)
     VERBOSE=true
     shift
     ;;
@@ -75,6 +73,9 @@ while [[ $# -gt 0 ]]; do
     ;;
   esac
 done
+
+export QUIET
+export VERBOSE
 
 log "=== Building Maven Modules ==="
 
