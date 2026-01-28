@@ -89,7 +89,7 @@ public class SmbPasswdCli implements Callable<Integer> {
         }
 
         Files.write(smbPasswdFile, lines);
-        log(!quiet, "INFO: User '" + username + "' updated in '" + smbPasswdFile + "'");
+        log(verbose, "INFO: User '" + username + "' updated in '" + smbPasswdFile + "'");
         return 0;
     }
 

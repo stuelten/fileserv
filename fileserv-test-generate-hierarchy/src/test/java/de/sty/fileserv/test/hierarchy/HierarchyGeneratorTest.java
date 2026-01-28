@@ -31,8 +31,7 @@ class HierarchyGeneratorTest {
 
     @Test
     void testMinimalSettings() throws Exception {
-        // Arguments: --size 10kb --count 1 --ratio-dir-to-files 0 --depth 1 "$TEST_DIR"
-        String[] args = {"--size", "10kb", "--count", "1", "--ratio-dir-to-files", "0", "--depth", "1", testDir.toString()};
+        String[] args = {"-q", "--size", "10kb", "--count", "1", "--ratio-dir-to-files", "0", "--depth", "1", testDir.toString()};
 
         HierarchyGenerator generator = new HierarchyGenerator();
         int exitCode = new CommandLine(generator).execute(args);
@@ -54,8 +53,7 @@ class HierarchyGeneratorTest {
 
     @Test
     void testDefaultUsageMinimalMB() throws Exception {
-        // Arguments: --size 1 --count 10 --ratio-dir-to-files 5 --depth 2 "$TEST_DIR"
-        String[] args = {"--size", "1", "--count", "10", "--ratio-dir-to-files", "5", "--depth", "2", testDir.toString()};
+        String[] args = {"-q", "--size", "1", "--count", "10", "--ratio-dir-to-files", "5", "--depth", "2", testDir.toString()};
 
         int exitCode = new CommandLine(new HierarchyGenerator()).execute(args);
 
@@ -70,11 +68,10 @@ class HierarchyGeneratorTest {
 
     @Test
     void testHierarchyDepthConstraint() throws Exception {
-        // Arguments: --size 1 --count 20 --ratio-dir-to-files 1 --depth 3 "$TEST_DIR"
         int count = 20;
         int depth = 3;
 
-        String[] args = {"--size", "1", "--count", "" + count, "--ratio-dir-to-files", "1", "--depth", "" + depth, testDir.toString()};
+        String[] args = {"-q", "--size", "1", "--count", "" + count, "--ratio-dir-to-files", "1", "--depth", "" + depth, testDir.toString()};
 
         int exitCode = new CommandLine(new HierarchyGenerator()).execute(args);
 
@@ -100,7 +97,7 @@ class HierarchyGeneratorTest {
         // more than 4kb, a lot of files with a deep hierarchy
         int count = 1000;
         int depth = 12;
-        String[] args = {"--size", "4100", "--count", "" + count, "--ratio-dir-to-files", "10", "--depth", "" + depth, testDir.toString()};
+        String[] args = {"-q", "--size", "4100", "--count", "" + count, "--ratio-dir-to-files", "10", "--depth", "" + depth, testDir.toString()};
 
         int exitCode = new CommandLine(new HierarchyGenerator()).execute(args);
 
@@ -125,7 +122,7 @@ class HierarchyGeneratorTest {
         // small files, a lot of files with a deep hierarchy
         int count = 10000;
         int depth = 33;
-        String[] args = {"--size", "1", "--count", "" + count, "--ratio-dir-to-files", "10", "--depth", "" + depth, testDir.toString()};
+        String[] args = {"-q", "--size", "1", "--count", "" + count, "--ratio-dir-to-files", "10", "--depth", "" + depth, testDir.toString()};
 
         int exitCode = new CommandLine(new HierarchyGenerator()).execute(args);
 
@@ -150,7 +147,7 @@ class HierarchyGeneratorTest {
         // small files, a lot of files with a deep hierarchy
         int count = 10000;
         int depth = 2;
-        String[] args = {"--size", "1", "--count", "" + count, "--depth", "" + depth, testDir.toString()};
+        String[] args = {"-q", "--size", "1", "--count", "" + count, "--depth", "" + depth, testDir.toString()};
 
         int exitCode = new CommandLine(new HierarchyGenerator()).execute(args);
 
@@ -171,8 +168,7 @@ class HierarchyGeneratorTest {
 
     @Test
     void testFailsOnInvalidArguments() {
-        // Arguments: --size 0 --count 0
-        String[] args = {"--size", "0", "--count", "0"};
+        String[] args = {"-q", "--size", "0", "--count", "0"};
 
         int exitCode = new CommandLine(new HierarchyGenerator()).execute(args);
 
@@ -181,8 +177,7 @@ class HierarchyGeneratorTest {
 
     @Test
     void testShortOptions() throws Exception {
-        // Arguments: -s 10kb -c 5 -r 1 -d 2 "$TEST_DIR"
-        String[] args = {"-s", "10kb", "-c", "5", "-r", "1", "-d", "2", testDir.toString()};
+        String[] args = {"-q", "-s", "10kb", "-c", "5", "-r", "1", "-d", "2", testDir.toString()};
 
         int exitCode = new CommandLine(new HierarchyGenerator()).execute(args);
 
@@ -198,6 +193,7 @@ class HierarchyGeneratorTest {
     @Test
     void testParseSize() {
         HierarchyGenerator generator = new HierarchyGenerator();
+        generator.quiet = true;
 
         // Default MB
         assertThat(generator.parseSize("10")).isEqualTo(10L * 1024 * 1024);
@@ -238,7 +234,7 @@ class HierarchyGeneratorTest {
     }
 
     /**
-     * Counts files and directories recursively under given path
+     * Counts files and directories recursively under a given path
      *
      * @return array with [0] = number of files, [1] = number of directories
      */
@@ -255,7 +251,6 @@ class HierarchyGeneratorTest {
                 }
             });
         }
-        System.out.print("Found " + ret[0] + " files and " + ret[1] + " directories in " + path);
         return ret;
     }
 

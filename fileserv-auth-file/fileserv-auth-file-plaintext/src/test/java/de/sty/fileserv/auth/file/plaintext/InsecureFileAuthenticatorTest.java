@@ -1,9 +1,12 @@
 package de.sty.fileserv.auth.file.plaintext;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
@@ -46,9 +49,20 @@ class InsecureFileAuthenticatorTest {
     @Test
     void throwsExceptionOnNonExistentFile() {
         Path missingFile = tempDir.resolve("missing.txt");
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> 
-                new InsecureFileAuthenticator(missingFile)
-        );
+        PrintStream originalErr = System.err;
+        try {
+            System.setErr(new PrintStream(new OutputStream() {
+                @Override
+                public void write(int b) {
+                    // ignore
+                }
+            }));
+            Assertions.assertThrows(IllegalArgumentException.class, () ->
+                    new InsecureFileAuthenticator(missingFile)
+            );
+        } finally {
+            System.setErr(originalErr);
+        }
     }
 
     @Test

@@ -31,36 +31,37 @@ import java.util.regex.Pattern;
 public class HierarchyGenerator implements Callable<Integer> {
 
     private final Random random = new Random();
+
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec;
     // Set by PicoCLI
     @SuppressWarnings("unused")
     @Option(names = {"-s", "--size"}, description = "Total size of all files combined (e.g., 20mb, 500kb). NOTE: This is not size of each file! Default: 2mb", defaultValue = "2mb")
-    private String sizeStr;
+    String sizeStr;
     // Set by PicoCLI
     @SuppressWarnings("unused")
     @Option(names = {"-c", "--count"}, description = "Total number of files and directories to create. Default: 100", defaultValue = "100")
-    private int count;
+    int count;
     // Set by PicoCLI
     @SuppressWarnings("unused")
     @Option(names = {"-r", "--ratio-dir-to-files"}, description = "Ratio of files to directories (e.g., 12 means ~1 dir per 12 files). Default: 10", defaultValue = "10")
-    private int ratio;
+    int ratio;
     // Set by PicoCLI
     @SuppressWarnings("unused")
     @Option(names = {"-d", "--depth"}, description = "Maximum depth of the directory tree. Default: 4", defaultValue = "4")
-    private int depth;
+    int depth;
     // Set by PicoCLI
     @SuppressWarnings("unused")
     @Parameters(index = "0", description = "Target directory")
-    private Path targetDir;
+    Path targetDir;
     // Set by PicoCLI
     @SuppressWarnings("unused")
     @Option(names = {"-q", "--quiet"}, description = "Minimize output for successful execution.")
-    private boolean quiet = false;
+    boolean quiet = false;
     // Set by PicoCLI
     @SuppressWarnings("unused")
     @Option(names = {"-v", "--verbose"}, description = "Show more detailed output.")
-    private boolean verbose = false;
+    boolean verbose = false;
 
     public static void main(String[] args) {
         int exitCode = new CommandLine(new HierarchyGenerator()).execute(args);
