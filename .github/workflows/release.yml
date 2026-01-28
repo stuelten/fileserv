@@ -47,7 +47,7 @@ jobs:
       - name: Log version
         id: log_version
         run: |
-          echo "Version to build: ${env.VERSION}"
+          echo "Version to build: ${{ env.VERSION }}"
 
       - name: Build and Release
         env:
