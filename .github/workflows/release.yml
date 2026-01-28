@@ -32,7 +32,7 @@ jobs:
         run: |
           chmod +x bin/version-get.sh
           chmod +x bin/version-increase-semver.sh
-          echo "Current version:  $(./bin/version-get.sh)
+          echo "Current version:  $(./bin/version-get.sh)"
 
           VERSION_INCREASED=$(./bin/version-increase-semver.sh)
           VERSION_INPUT="${{ github.event.inputs.version }}"
