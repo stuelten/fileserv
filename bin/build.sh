@@ -61,7 +61,7 @@ while [[ $# -gt 0 ]]; do
     VERBOSE=true
     shift
     ;;
-  --buildNativeBinaries)
+  buildNativeBinaries)
     NATIVE=true
     shift
     ;;
