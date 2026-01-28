@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # bin/build.sh - Build and Test Script for FileServ
 
 set -e
@@ -22,10 +21,10 @@ show_help() {
   echo "  --skipTests              Skip running tests during build"
   echo "  --quiet                  Minimize output"
   echo "  --verbose                Show detailed output"
-  echo "  --buildNativeBinaries    Build native binaries using GraalVM"
   echo ""
   echo "Arguments:"
   echo "  clean                    Clean build artifacts before building"
+  echo "  buildNativeBinaries    Build native binaries using GraalVM"
 }
 
 # Handle options

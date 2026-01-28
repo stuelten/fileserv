@@ -3,8 +3,8 @@
 # Read data from a GitHub issue.
 #
 
-VERBOSE=false
-QUIET=true
+export VERBOSE=false
+export QUIET=true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -27,7 +27,6 @@ The GITHUB_REPO environment variable can be set to the path to use
 Options:
   -h, --help    Show this help message and exit.
   -v, --verbose Show verbose log messages.
-  --json        Output the raw JSON response from GitHub API.
 
 Environment Variables:
   TOKEN         GitHub API token.
@@ -41,7 +40,6 @@ Examples:
 EOF
 }
 
-JSON_OUTPUT=false
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
         -h|--help)
@@ -49,12 +47,8 @@ while [[ "$#" -gt 0 ]]; do
             exit 0
             ;;
         -v|--verbose)
-            VERBOSE=true
-            QUIET=false
-            shift
-            ;;
-        --json)
-            JSON_OUTPUT=true
+            export VERBOSE=true
+            export QUIET=false
             shift
             ;;
         *)
@@ -77,8 +71,8 @@ fi
 
 if [[ -z "$GITHUB_REPO" ]]; then
     # Try to get repo from git remote
-    REMOTE_URL=$(git remote get-url origin 2>/dev/null)
-    if [[ $? -eq 0 ]]; then
+    REMOTE_URL=$(git_repo_get_remote_url)
+    if [[ -n "$REMOTE_URL" ]]; then
         # Handle both https and ssh formats
         # https://github.com/owner/repo.git -> owner/repo
         # git@github.com:owner/repo.git -> owner/repo
@@ -97,7 +91,7 @@ fi
 # reads the issue via curl
 URL="https://api.github.com/repos/$GITHUB_REPO/issues/$1"
 log "Read issue $1 from $URL"
-data=$(curl -sS -H "Authorization: token $TOKEN" $URL)
+data=$(curl -sS -H "Authorization: token $TOKEN" "$URL")
 curl_exit_code=$?
 
 if [[ $curl_exit_code -ne 0 ]]; then

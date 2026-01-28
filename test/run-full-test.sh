@@ -1,17 +1,20 @@
 #!/bin/bash
+# Prepare the setup and build artifacts, then test them
+
+
 set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../bin" && pwd)"
+
+#export QUIET=${QUIET:-false}
 
 # Source common functions
 # shellcheck source=../bin/common.sh
-source "$(dirname "$0")/../bin/common.sh"
-
-# Automation script for full test setup
+source "$SCRIPT_DIR/common.sh"
 
 # 1. Build project
-log "Building project..."
-./mvnw clean package -DskipTests
 
-# 1.1 Detect container engine
+## 1.1 Detect container engine
 if command -v docker-compose >/dev/null 2>&1; then
     DOCKER_COMPOSE="docker-compose"
 elif docker compose version >/dev/null 2>&1; then
@@ -32,36 +35,46 @@ if [[ "$DOCKER_COMPOSE" == *"podman"* ]]; then
     fi
 fi
 
-# 2. Setup config directory
+## 1.2 Build java part
+log "Building project with native profile..."
+# Update the path for GraalVM if JAVA_HOME is set
+if [ -n "$JAVA_HOME" ]; then
+    export PATH="$JAVA_HOME/bin:$PATH"
+fi
+"$SCRIPT_DIR/build.sh" --quiet clean buildNativeBinaries
+
+# 2. Set up the config directory
+
 log "Setting up config directory..."
 mkdir -p etc/auth
 
-# 2.1 Generate plaintext users
+## 2.1 Generate plaintext users
 log "Generating plaintext users..."
 echo "alice:password123" > etc/fileserv-passwd
 echo "bob:secret456" >> etc/fileserv-passwd
 
-# 2.2 Generate smbpasswd users
+## 2.2 Generate smbpasswd users
 log "Generating smbpasswd users..."
 SMB_PASSWD_JAR="fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd.jar"
 java -jar "$SMB_PASSWD_JAR" -c etc/smbpasswd -a charlie smbpass789
 
-# 2.3 Configure smb authenticator
+## 2.3 Configure smb authenticator
 log "Configuring smb authenticator..."
 echo "file-smb:path=/app/etc/smbpasswd" > etc/auth/smb.conf
 
 # 3. Prepopulate data dir
+
 log "Populating data directory..."
 rm -rf data/*
 GEN_HIERARCHY_JAR="fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy.jar"
 java -jar "$GEN_HIERARCHY_JAR" --size 5mb --count 50 --depth 3 data/
 
-# 4. Start Docker container
+# 4. Start the Docker container
 log "Starting FileServ container..."
 $DOCKER_COMPOSE down || true
 $DOCKER_COMPOSE up -d --build
 
-# Wait for server to start
+## 4.1 Wait for the server to start
 log "Waiting for server to start..."
 sleep 5
 
@@ -81,10 +94,15 @@ java -jar "$WEBDAV_JAR" http://localhost:8080/ -u charlie -p smbpass789 || EXIT_
 log "Cleaning up..."
 $DOCKER_COMPOSE down
 
-if [ $EXIT_CODE -eq 0 ]; then
+if [[ $EXIT_CODE -eq 0 ]]; then
     log "SUCCESS: Full test setup completed successfully."
+
+    # clean up
+    rm etc/fileserv-passwd
+    rm etc/auth/smb.conf
+    rm -rf data/*
 else
     error "FAILURE: One or more tests failed."
 fi
 
-exit $EXIT_CODE
+exit "$EXIT_CODE"

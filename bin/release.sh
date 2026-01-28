@@ -78,7 +78,7 @@ log "Building project with native profile..."
 if [ -n "$JAVA_HOME" ]; then
   export PATH="$JAVA_HOME/bin:$PATH"
 fi
-"$SCRIPT_DIR/build.sh" --quiet --buildNativeBinaries clean
+"$SCRIPT_DIR/build.sh" --quiet clean buildNativeBinaries
 
 # 3. Verify the build output
 log "Checking build artifacts..."
