@@ -1,7 +1,6 @@
 #!/bin/bash
 # Prepare the setup and build artifacts, then test them
 
-
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../bin" && pwd)"
@@ -12,6 +11,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../bin" && pwd)"
 # shellcheck source=../bin/common.sh
 source "$SCRIPT_DIR/common.sh"
 
+# 0. Test build and release stuff
+TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$TESTS_DIR"/run-test-scripts.sh
+
 # 1. Build project
 
 ## 1.1 Detect container engine
@@ -19,10 +22,11 @@ if command -v docker-compose >/dev/null 2>&1; then
     DOCKER_COMPOSE="docker-compose"
 elif docker compose version >/dev/null 2>&1; then
     DOCKER_COMPOSE="docker compose"
-elif command -v podman-compose >/dev/null 2>&1; then
-    DOCKER_COMPOSE="podman-compose"
+elif command -v podman >/dev/null 2>&1; then
+    DOCKER_COMPOSE="podman compose"
 else
-    error "Neither docker-compose nor podman-compose found."
+    echo "No compose in '$PATH'"
+    error "Neither docker compose, docker-compose nor podman compose found."
     exit 1
 fi
 log "Using $DOCKER_COMPOSE for container management."
@@ -41,6 +45,7 @@ log "Building project with native profile..."
 if [ -n "$JAVA_HOME" ]; then
     export PATH="$JAVA_HOME/bin:$PATH"
 fi
+# shellcheck source=../bin/build.sh
 "$SCRIPT_DIR/build.sh" --quiet clean buildNativeBinaries
 
 # 2. Set up the config directory
