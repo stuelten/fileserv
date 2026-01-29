@@ -1,0 +1,223 @@
+name: Release (step-by-step)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (leave empty for auto-increase)'
+        required: false
+        default: ''
+
+jobs:
+  prepare:
+    name: Prepare correct version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version_increase.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Increase Version
+        id: version_increase
+        run: |
+          chmod +x bin/version-get.sh
+          chmod +x bin/version-increase-semver.sh
+          echo "Current version:  $(./bin/version-get.sh)"
+
+          VERSION_INCREASED=$(./bin/version-increase-semver.sh)
+          VERSION_INPUT="${{ github.event.inputs.version }}"
+          VERSION=${VERSION_INPUT:-$VERSION_INCREASED}
+          
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+  build-java:
+    name: Build Java Parts
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Set version
+        run: |
+          chmod +x bin/version-set.sh
+          ./bin/version-set.sh ${{ needs.prepare.outputs.version }}
+
+      - name: Build with Maven
+        run: ./mvnw install -DskipTests
+
+      - name: Upload JARs
+        uses: actions/upload-artifact@v6
+        with:
+          name: java-artifacts
+          path: |
+            **/target/*.jar
+            !**/target/*-sources.jar
+            !**/target/*-javadoc.jar
+
+  build-native:
+    name: Build Native Binaries
+    needs: [prepare, build-java]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'true'
+          cache: 'maven'
+
+      - name: Set version
+        run: |
+          chmod +x bin/version-set.sh
+          ./bin/version-set.sh ${{ needs.prepare.outputs.version }}
+
+      - name: Build Native Binaries
+        run: |
+          chmod +x bin/build.sh
+          ./bin/build.sh --quiet --skipDocker --skipTests buildNativeBinaries
+
+      - name: Upload Native Binaries
+        uses: actions/upload-artifact@v6
+        with:
+          name: native-binaries
+          path: |
+            fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd
+            fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy
+            fileserv-test-webdav/target/fileserv-test-webdav
+
+  build-docker:
+    name: Build Docker Containers
+    needs: [prepare, build-java]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download JARs
+        uses: actions/download-artifact@v7
+        with:
+          name: java-artifacts
+
+      - name: Build Docker Image
+        run: |
+          docker build -t fileserv .
+
+  quick-tests:
+    name: Run Quick Tests
+    needs: [prepare, build-java]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Download JARs
+        uses: actions/download-artifact@v7
+        with:
+          name: java-artifacts
+
+      - name: Run Maven Tests
+        run: ./mvnw test
+
+      - name: Run Bash Test Scripts
+        run: |
+          chmod +x test/run-test-scripts.sh
+          ./test/run-test-scripts.sh -q
+
+  long-running-tests:
+    name: Start Long-Running Tests asynchronously
+    needs: [prepare, build-java, build-docker]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Download JARs
+        uses: actions/download-artifact@v7
+        with:
+          name: java-artifacts
+
+      - name: Run Full Test Setup
+        run: |
+          chmod +x test/run-full-test.sh
+          # We need to make sure build.sh inside run-full-test.sh doesn't try to rebuild everything if possible
+          ./test/run-full-test.sh -q --skipBuild
+
+      - name: Check container logs on failure
+        if: failure()
+        run: |
+          docker compose logs || docker-compose logs || true
+
+  release:
+    name: Release
+    needs: [prepare, build-java, build-native, quick-tests, long-running-tests]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download Native Binaries
+        uses: actions/download-artifact@v7
+        with:
+          name: native-binaries
+          path: ./native-binaries
+
+      - name: Prepare Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ needs.prepare.outputs.version }}
+          chmod +x bin/version-set.sh
+          ./bin/version-set.sh $VERSION
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add "**/pom.xml" "pom.xml"
+          git commit -m "chore: release version $VERSION"
+          git tag -a "v$VERSION" -m "Version $VERSION"
+          git push origin main
+          git push origin "v$VERSION"
+          
+          # Move native binaries to expected locations for gh release
+          mkdir -p fileserv-auth-file/fileserv-auth-file-smbpasswd/target/
+          mkdir -p fileserv-test-generate-hierarchy/target/
+          mkdir -p fileserv-test-webdav/target/
+          
+          cp ./native-binaries/fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd fileserv-auth-file/fileserv-auth-file-smbpasswd/target/
+          cp ./native-binaries/fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy fileserv-test-generate-hierarchy/target/
+          cp ./native-binaries/fileserv-test-webdav/target/fileserv-test-webdav fileserv-test-webdav/target/
+          
+          gh release create "v$VERSION" \
+            "fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd" \
+            "fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy" \
+            "fileserv-test-webdav/target/fileserv-test-webdav" \
+            --title "Version $VERSION" \
+            --notes "Automated release of version $VERSION"
