@@ -53,12 +53,49 @@ jobs:
           ./bin/version-set.sh ${{ needs.prepare.outputs.version }}
 
       - name: Build with Maven
-        run: ./mvnw install -DskipTests
+        run: ./mvnw -DskipTests install
 
       - name: Upload JARs
         uses: actions/upload-artifact@v6
         with:
           name: java-artifacts
+          path: |
+            **/target/classes
+            **/target/*.jar
+            !**/target/*-sources.jar
+            !**/target/*-javadoc.jar
+
+  build-java-shaded-jars:
+    name: Build Java Parts as All-in-One JARs
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Download Java Build artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: java-artifacts
+
+      - name: Set version
+        run: |
+          chmod +x bin/version-set.sh
+          ./bin/version-set.sh ${{ needs.prepare.outputs.version }}
+
+      - name: Build with Maven
+        run: ./mvnw -DskipTests -Pshaded-jar install
+
+      - name: Upload JARs
+        uses: actions/upload-artifact@v6
+        with:
+          name: java-shaded-jars
           path: |
             **/target/*.jar
             !**/target/*-sources.jar
@@ -66,7 +103,7 @@ jobs:
 
   build-native:
     name: Build Native Binaries
-    needs: [prepare, build-java]
+    needs: [prepare, build-java-shaded-jars]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -85,31 +122,40 @@ jobs:
           chmod +x bin/version-set.sh
           ./bin/version-set.sh ${{ needs.prepare.outputs.version }}
 
+      - name: Download Java Build artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: java-artifacts
+
+      - name: Download Java Shaded Jars
+        uses: actions/download-artifact@v7
+        with:
+          name: java-shaded-jars
+
       - name: Build Native Binaries
-        run: |
-          chmod +x bin/build.sh
-          ./bin/build.sh --quiet --skipDocker --skipTests buildNativeBinaries
+        run: ./mvnw -DskipTests -Pnative install
 
       - name: Upload Native Binaries
         uses: actions/upload-artifact@v6
         with:
           name: native-binaries
           path: |
+            fileserv-app/fileserv-app/target/fileserv-app
             fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd
             fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy
             fileserv-test-webdav/target/fileserv-test-webdav
 
   build-docker:
     name: Build Docker Containers
-    needs: [prepare, build-java]
+    needs: [build-java-shaded-jars]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
-      - name: Download JARs
+      - name: Download Java Shaded Jars
         uses: actions/download-artifact@v7
         with:
-          name: java-artifacts
+          name: java-shaded-jars
 
       - name: Build Docker Image
         run: |
@@ -117,7 +163,7 @@ jobs:
 
   quick-tests:
     name: Run Quick Tests
-    needs: [prepare, build-java]
+    needs: [build-java]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -144,7 +190,7 @@ jobs:
 
   long-running-tests:
     name: Start Long-Running Tests asynchronously
-    needs: [prepare, build-java, build-docker]
+    needs: [build-java-shaded-jars, build-docker]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -159,7 +205,7 @@ jobs:
       - name: Download JARs
         uses: actions/download-artifact@v7
         with:
-          name: java-artifacts
+          name: java-shaded-jars
 
       - name: Run Full Test Setup
         run: |
@@ -174,7 +220,7 @@ jobs:
 
   release:
     name: Release
-    needs: [prepare, build-java, build-native, quick-tests, long-running-tests]
+    needs: [prepare, build-java, build-java-shaded-jars ,build-native, quick-tests]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -182,6 +228,11 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+
+      - name: Download JARs
+        uses: actions/download-artifact@v7
+        with:
+          name: java-artifacts
 
       - name: Download Native Binaries
         uses: actions/download-artifact@v7
