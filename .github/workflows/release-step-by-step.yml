@@ -67,7 +67,7 @@ jobs:
 
   build-java-shaded-jars:
     name: Build Java Parts as All-in-One JARs
-    needs: prepare
+    needs: [prepare, build-java]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
