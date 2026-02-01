@@ -132,7 +132,13 @@ $DOCKER_COMPOSE up -d --build
 
 ## 4.1 Wait for the server to start
 log "Waiting for server to start..."
-sleep 5
+if ! url_get_wait_and_retry "http://localhost:8080/"; then
+  error "Server did not start within reasonable time."
+  $DOCKER_COMPOSE logs
+  $DOCKER_COMPOSE down
+  exit 1
+fi
+log "Server is up and running."
 
 # 5. Run WebDAV tester
 log "Running WebDAV tests..."

@@ -58,7 +58,7 @@ jobs:
       - name: Upload JARs
         uses: actions/upload-artifact@v6
         with:
-          name: java-artifacts
+          name: fileserv-java-artifacts-${{ needs.prepare.outputs.version }}
           path: |
             **/target/classes
             **/target/*.jar
@@ -82,7 +82,7 @@ jobs:
       - name: Download Java Build artifacts
         uses: actions/download-artifact@v7
         with:
-          name: java-artifacts
+          name: fileserv-java-artifacts-${{ needs.prepare.outputs.version }}
 
       - name: Set version
         run: |
@@ -95,7 +95,7 @@ jobs:
       - name: Upload JARs
         uses: actions/upload-artifact@v6
         with:
-          name: java-shaded-jars
+          name: fileserv-java-shaded-jars-${{ needs.prepare.outputs.version }}
           path: |
             **/target/*.jar
             !**/target/*-sources.jar
@@ -125,12 +125,12 @@ jobs:
       - name: Download Java Build artifacts
         uses: actions/download-artifact@v7
         with:
-          name: java-artifacts
+          name: fileserv-java-artifacts-${{ needs.prepare.outputs.version }}
 
       - name: Download Java Shaded Jars
         uses: actions/download-artifact@v7
         with:
-          name: java-shaded-jars
+          name: fileserv-java-shaded-jars-${{ needs.prepare.outputs.version }}
 
       - name: Build Native Binaries
         run: ./mvnw -DskipTests -Pnative install
@@ -138,7 +138,7 @@ jobs:
       - name: Upload Native Binaries
         uses: actions/upload-artifact@v6
         with:
-          name: native-binaries
+          name: fileserv-native-binaries-${{ needs.prepare.outputs.version }}
           path: |
             fileserv-app/fileserv-app/target/fileserv-app
             fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd
@@ -147,7 +147,7 @@ jobs:
 
   build-docker:
     name: Build Docker Containers
-    needs: [build-java-shaded-jars]
+    needs: [prepare, build-java-shaded-jars]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -155,15 +155,15 @@ jobs:
       - name: Download Java Shaded Jars
         uses: actions/download-artifact@v7
         with:
-          name: java-shaded-jars
+          name: fileserv-java-shaded-jars-${{ needs.prepare.outputs.version }}
 
       - name: Build Docker Image
         run: |
           docker build -t fileserv .
 
   quick-tests-mvn:
-    name: Run Quick Tests
-    needs: [build-java]
+    name: Run Quick Tests (mvn)
+    needs: [prepare, build-java]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -178,14 +178,14 @@ jobs:
       - name: Download JARs
         uses: actions/download-artifact@v7
         with:
-          name: java-artifacts
+          name: fileserv-java-artifacts-${{ needs.prepare.outputs.version }}
 
       - name: Run Maven Tests
         run: ./mvnw test
 
   quick-tests-bash:
-    name: Run Quick Tests
-    needs: [build-java]
+    name: Run Quick Tests (bash)
+    needs: [prepare, build-java]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -200,7 +200,7 @@ jobs:
       - name: Download JARs
         uses: actions/download-artifact@v7
         with:
-          name: java-artifacts
+          name: fileserv-java-artifacts-${{ needs.prepare.outputs.version }}
 
       - name: Run Bash Test Scripts
         run: |
@@ -209,7 +209,7 @@ jobs:
 
   long-running-tests:
     name: Start Long-Running Tests asynchronously
-    needs: [build-java-shaded-jars, build-docker]
+    needs: [prepare, build-java-shaded-jars, build-docker]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -224,7 +224,7 @@ jobs:
       - name: Download JARs
         uses: actions/download-artifact@v7
         with:
-          name: java-shaded-jars
+          name: fileserv-java-shaded-jars-${{ needs.prepare.outputs.version }}
 
       - name: Run Full Test Setup
         run: |
@@ -251,12 +251,12 @@ jobs:
       - name: Download JARs
         uses: actions/download-artifact@v7
         with:
-          name: java-artifacts
+          name: fileserv-java-artifacts-${{ needs.prepare.outputs.version }}
 
       - name: Download Native Binaries
         uses: actions/download-artifact@v7
         with:
-          name: native-binaries
+          name: fileserv-native-binaries-${{ needs.prepare.outputs.version }}
           path: ./native-binaries
 
       - name: Prepare Release
