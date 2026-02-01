@@ -7,7 +7,7 @@
     <parent>
         <groupId>de.sty</groupId>
         <artifactId>fileserv-auth-file</artifactId>
-        <version>0.3.1</version>
+        <version>0.3.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>fileserv-auth-file-smbpasswd</artifactId>
