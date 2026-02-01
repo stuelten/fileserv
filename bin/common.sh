@@ -80,6 +80,8 @@ find_jar() {
     jar=$(ls "${module_path}/target/${artifact_id}.jar" 2>/dev/null || ls "${module_path}/target/${artifact_id}-"*.jar 2>/dev/null | grep -v "original-" | head -n 1)
 
     if [ -z "$jar" ] || [ ! -f "$jar" ]; then
+        log "jar not found for $1:$2"
+        log "$(ls "${module_path}"/target)"
         error "Could not find jar for ${artifact_id}"
     fi
     echo "$jar"
