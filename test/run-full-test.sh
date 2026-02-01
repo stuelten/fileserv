@@ -107,7 +107,8 @@ echo "bob:secret456" >>etc/fileserv-passwd
 
 ## 2.2 Generate smbpasswd users
 log "Generating smbpasswd users..."
-SMB_PASSWD_JAR="fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd.jar"
+SMB_PASSWD_JAR=$(find_jar "fileserv-auth-file/fileserv-auth-file-smbpasswd" "fileserv-auth-file-smbpasswd")
+
 # shellcheck disable=SC2086
 java -jar "$SMB_PASSWD_JAR" $JAVA_OPTS -c etc/smbpasswd -a charlie smbpass789
 
@@ -119,7 +120,8 @@ echo "file-smb:path=/app/etc/smbpasswd" >etc/auth/smb.conf
 
 log "Populating data directory..."
 rm -rf data/*
-GEN_HIERARCHY_JAR="fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy.jar"
+GEN_HIERARCHY_JAR=$(find_jar "fileserv-test-generate-hierarchy" "fileserv-test-generate-hierarchy")
+
 # shellcheck disable=SC2086
 java -jar "$GEN_HIERARCHY_JAR" $JAVA_OPTS --size 5mb --count 50 --depth 3 data/
 
@@ -136,7 +138,7 @@ sleep 5
 log "Running WebDAV tests..."
 EXIT_CODE=0
 
-WEBDAV_JAR="fileserv-test-webdav/target/fileserv-test-webdav.jar"
+WEBDAV_JAR=$(find_jar "fileserv-test-webdav" "fileserv-test-webdav")
 
 log "Testing Alice (Plaintext)..."
 # shellcheck disable=SC2086
@@ -156,6 +158,7 @@ if [[ $EXIT_CODE -eq 0 ]]; then
   # clean up
   rm etc/fileserv-passwd
   rm etc/auth/smb.conf
+  rm etc/smbpasswd
   rm -rf data/*
 else
   error "FAILURE: One or more tests failed."

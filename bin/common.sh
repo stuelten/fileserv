@@ -67,3 +67,20 @@ git_repo_get_remote_url() {
     local remote=${1:-origin}
     git remote get-url "$remote" 2>/dev/null
 }
+
+# Find a jar for a module and error if not found
+# Usage: check_jar <module_path> <artifact_id>
+# Returns: The path to the found jar
+find_jar() {
+    local module_path="$1"
+    local artifact_id="$2"
+    local jar
+    
+    # Prefer the non-versioned jar if it exists, otherwise use the versioned one
+    jar=$(ls "${module_path}/target/${artifact_id}.jar" 2>/dev/null || ls "${module_path}/target/${artifact_id}-"*.jar 2>/dev/null | grep -v "original-" | head -n 1)
+
+    if [ -z "$jar" ] || [ ! -f "$jar" ]; then
+        error "Could not find jar for ${artifact_id}"
+    fi
+    echo "$jar"
+}

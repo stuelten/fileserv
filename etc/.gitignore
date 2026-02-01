@@ -1,3 +1,4 @@
 passwd
 smbpasswd
 etc/fileserv-passwd
+auth/*
