@@ -240,3 +240,10 @@ fileserv-test-generate-hierarchy --help
 Following Homebrew's best practices, we use two separate repositories:
 - **[fileserv](https://github.com/stuelten/fileserv)**: The main project containing the source code and build logic.
 - **[homebrew-tap](https://github.com/stuelten/homebrew-tap)**: A dedicated repository for Homebrew formulae.
+
+## Community
+
+- **[Contributing](CONTRIBUTING.md)**: Guidelines for contributing to FileServ.
+- **[Code of Conduct](CODE_OF_CONDUCT.md)**: Our expectations for community behavior.
+- **[Security Policy](SECURITY.md)**: How to report security vulnerabilities.
+- **[License](LICENSE)**: FileServ is licensed under the Apache License 2.0.
