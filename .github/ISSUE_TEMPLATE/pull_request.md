@@ -1,3 +1,12 @@
+---
+name: Pull Request
+about: Create a PR to help us improve
+title: ''
+labels: ''
+assignees: ''
+
+---
+
 ## Description
 Please include a summary of the change and which issue is fixed.
 Please also include relevant motivation and context.
@@ -34,4 +43,6 @@ Please also list any relevant details for your test configuration.
 - [ ] I have added tests that prove my fix is effective or that my feature works
 - [ ] New and existing unit tests pass locally with my changes
 - [ ] Any dependent changes have been merged and published in downstream modules
+- [ ] I have read the [CONTRIBUTING](../CONTRIBUTING.md) guidelines
+- [ ] I agree to the terms of the [LICENSE](../LICENSE) of this project
 - [ ] I own this code and have the right to contribute it to this project
