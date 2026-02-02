@@ -336,7 +336,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Bump new Version
+      - name: Bump new snapshot version
         id: version_bump
         run: |
           chmod +x bin/version-get.sh
@@ -348,6 +348,9 @@ jobs:
           echo "Next minor: $VERSION_INCREASED"
           ./bin/version-set-snapshot.sh $VERSION_INCREASED
           
+      - name: Push new version
+        id: version_push
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
