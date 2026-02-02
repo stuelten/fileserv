@@ -324,3 +324,35 @@ jobs:
             "fileserv-test-webdav/target/fileserv-test-webdav" \
             --title "Version $VERSION" \
             --notes "Automated release of version $VERSION"
+
+  post-release:
+    name: Release
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Bump new Version
+        id: version_bump
+        run: |
+          chmod +x bin/version-get.sh
+          chmod +x bin/version-increase-semver.sh
+          chmod +x bin/version-set-snapshot.sh
+          echo "Current version:  $(./bin/version-get.sh)"
+
+          VERSION_INCREASED=$(./bin/version-increase-semver.sh minor)
+          echo "Next minor: $VERSION_INCREASED"
+          ./bin/version-set-snapshot.sh $VERSION_INCREASED
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add "**/pom.xml" "pom.xml"
+          git commit -m "chore: Bump snapshot version $VERSION"
+          git tag -a "v$VERSION" -m "Version $VERSION"
+          git push origin main
+          git push origin "v$VERSION"
