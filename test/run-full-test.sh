@@ -132,7 +132,7 @@ $DOCKER_COMPOSE up -d --build
 
 ## 4.1 Wait for the server to start
 log "Waiting for server to start..."
-if ! url_get_wait_and_retry "http://localhost:8080/"; then
+if ! url_get_wait_and_retry "http://localhost:8080/" 30 2; then
   error "Server did not start within reasonable time."
   $DOCKER_COMPOSE logs
   $DOCKER_COMPOSE down

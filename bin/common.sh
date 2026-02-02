@@ -92,7 +92,7 @@ git_repo_get_remote_url() {
 url_get_wait_and_retry() {
     local url="$1"
     local max_retries="${2:-30}"
-    local sleep_sec="${3:-2}"
+    local sleep_sec="${3:-1}"
     local retry_count=0
 
     while ! curl -s "$url" > /dev/null; do
@@ -100,7 +100,11 @@ url_get_wait_and_retry() {
         if [ "$retry_count" -ge "$max_retries" ]; then
             return 1
         fi
+        if [ "$QUIET" = false ]; then
+            echo -n "."
+        fi
         sleep "$sleep_sec"
     done
+    echo
     return 0
 }

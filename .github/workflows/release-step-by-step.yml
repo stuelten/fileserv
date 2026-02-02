@@ -237,9 +237,42 @@ jobs:
         run: |
           docker compose logs || docker-compose logs || true
 
+  report-results:
+    name: Report Build Results
+    needs: [prepare, build-java, build-java-shaded-jars, build-native]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download JARs
+        uses: actions/download-artifact@v7
+        with:
+          name: fileserv-java-artifacts-${{ needs.prepare.outputs.version }}
+          path: results/jars
+
+      - name: Download Shaded JARs
+        uses: actions/download-artifact@v7
+        with:
+          name: fileserv-java-shaded-jars-${{ needs.prepare.outputs.version }}
+          path: results/shaded-jars
+
+      - name: Download Native Binaries
+        uses: actions/download-artifact@v7
+        with:
+          name: fileserv-native-binaries-${{ needs.prepare.outputs.version }}
+          path: results/native
+
+      - name: Report Results
+        run: |
+          echo "### Build Results" >> $GITHUB_STEP_SUMMARY
+          echo "#### JARs" >> $GITHUB_STEP_SUMMARY
+          find results/jars -name "*.jar" -type f | sort >> $GITHUB_STEP_SUMMARY
+          echo "#### Shaded JARs" >> $GITHUB_STEP_SUMMARY
+          find results/shaded-jars -name "*.jar" -type f | sort >> $GITHUB_STEP_SUMMARY
+          echo "#### Native Binaries" >> $GITHUB_STEP_SUMMARY
+          find results/native -type f | sort >> $GITHUB_STEP_SUMMARY
+
   release:
     name: Release
-    needs: [prepare, build-java, build-java-shaded-jars, build-native, quick-tests-bash, quick-tests-mvn]
+    needs: [prepare, build-java, build-java-shaded-jars, build-native, quick-tests-bash, quick-tests-mvn, report-results]
     runs-on: ubuntu-latest
     permissions:
       contents: write
