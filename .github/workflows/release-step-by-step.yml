@@ -53,7 +53,7 @@ jobs:
           ./bin/version-set.sh ${{ needs.prepare.outputs.version }}
 
       - name: Build with Maven
-        run: ./mvnw -DskipTests install
+        run: ./mvnw --batch-mode -DskipTests install
 
       - name: Upload JARs
         uses: actions/upload-artifact@v6
@@ -90,7 +90,7 @@ jobs:
           ./bin/version-set.sh ${{ needs.prepare.outputs.version }}
 
       - name: Build with Maven
-        run: ./mvnw -DskipTests -Pshaded-jar install
+        run: ./mvnw --batch-mode -DskipTests -Pshaded-jar install
 
       - name: Upload JARs
         uses: actions/upload-artifact@v6
@@ -133,7 +133,7 @@ jobs:
           name: fileserv-java-shaded-jars-${{ needs.prepare.outputs.version }}
 
       - name: Build Native Binaries
-        run: ./mvnw -DskipTests -Pnative install
+        run: ./mvnw --batch-mode -DskipTests -Pnative install
 
       - name: Upload Native Binaries
         uses: actions/upload-artifact@v6
@@ -181,7 +181,7 @@ jobs:
           name: fileserv-java-artifacts-${{ needs.prepare.outputs.version }}
 
       - name: Run Maven Tests
-        run: ./mvnw test
+        run: ./mvnw --batch-mode test
 
   quick-tests-bash:
     name: Run Quick Tests (bash)

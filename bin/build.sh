@@ -92,7 +92,7 @@ fi
 
 MVN_OPTS=""
 if [ "$QUIET" = true ]; then
-  MVN_OPTS="$MVN_OPTS --quiet"
+  MVN_OPTS="$MVN_OPTS --batch-mode --quiet"
 fi
 if [ "$VERBOSE" = true ]; then
   MVN_OPTS="$MVN_OPTS --debug"
