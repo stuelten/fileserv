@@ -12,7 +12,7 @@ using the WebDAV protocol, supporting both HTTP and HTTPS.
 You can build a single executable file that includes all dependencies:
 
 ```bash
-./mvnw clean package -DskipTests
+./mvnw clean install -DskipTests -Pshaded-jar
 ```
 
 This will produce an executable at `fileserv-app/target/fileserv`. You can run it directly:
@@ -173,7 +173,7 @@ This provides instant startup and eliminates the need for a JRE.
 **Build**:
 To build the native executable, ensure you have a GraalVM-compatible JDK (version 21+) and run:
 ```bash
-JAVA_HOME=/path/to/graalvm ./mvnw clean package -pl fileserv-test-generate-hierarchy -DskipTests
+JAVA_HOME=/path/to/graalvm ./mvnw clean package -pl fileserv-test-generate-hierarchy -DskipTests -Pnative
 ```
 
 **Usage**:
@@ -188,20 +188,25 @@ JAVA_HOME=/path/to/graalvm ./mvnw clean package -pl fileserv-test-generate-hiera
 - `-c`, `--count <items>`: Total number of files and directories to create. Default: `100`.
 - `-r`, `--ratio-dir-to-files <R>`: Ratio of files to directories (e.g., `12` means ~1 dir per 12 files). Default: `10`.
 - `-d`, `--depth <max_depth>`: Maximum depth of the directory tree. Default: `4`.
+- `-p`, `--prefix <prefix>`: Prefix to use for file and dir names. If not given, a default prefix 'test' with a timestamp is used.
+- `-q`, `--quiet`: Minimize output for successful execution.
+- `-v`, `--verbose`: Show more detailed output.
 
 **Example**:
 ```bash
-# Generate 1000 files with a combined size of 20MB (roughly).
-# For each 12 files, one dir is created.
+# Generate 1000 items with a combined size of 20MB (roughly).
+# For each 12 items, approximately one dir is created.
 # The maximal depth of the hierarchy is 6.
+# Using 'mydata' as prefix for all files and directories.
 # All files and dirs are created inside the directory test-data.
-./fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy --size 20mb --count 1000 --ratio-dir-to-files 12 --depth 6 test-data
+./fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy --size 20mb --count 1000 --ratio-dir-to-files 12 --depth 6 --prefix mydata test-data
 ```
 
 This creates a directory `test-data`
-containing approximately 1000 items (files and directories)
+containing exactly 1000 items (files and directories)
 with a total size of 20MB,
 spread across a hierarchy up to 6 levels deep.
+File and directory names will start with `mydata_` followed by an index (e.g., `mydata_0`, `mydata_1.bin`).
 
 ## Installation via Homebrew
 

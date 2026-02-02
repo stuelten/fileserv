@@ -9,7 +9,8 @@ source "$(dirname "$0")/bin/common.sh"
 cd "$(dirname "$0")"
 
 log "Building the project (without tests)..."
-bin/build.sh --skipTests --skipDocker --quiet
+#./bin/build.sh --skipTests --skipDocker --quiet
+./mvnw -DskipTests -Pshaded-jar install
 
 log "=========================================================================="
 log "Starting the application..."

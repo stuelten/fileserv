@@ -30,6 +30,7 @@ import java.util.regex.Pattern;
 @SuppressWarnings("ClassHasNoToStringMethod")
 public class HierarchyGenerator implements Callable<Integer> {
 
+    public static final int OUTPUT_INTERVAL_MS = 2000;
     private final Random random = new Random();
 
     @CommandLine.Spec
@@ -56,6 +57,10 @@ public class HierarchyGenerator implements Callable<Integer> {
     Path targetDir;
     // Set by PicoCLI
     @SuppressWarnings("unused")
+    @Option(names = {"-p", "--prefix"}, description = "Prefix to use for file and dir names. Without a prefix given, 'test' and a timestamp will be used.")
+    String prefix;
+    // Set by PicoCLI
+    @SuppressWarnings("unused")
     @Option(names = {"-q", "--quiet"}, description = "Minimize output for successful execution.")
     boolean quiet = false;
     // Set by PicoCLI
@@ -70,11 +75,20 @@ public class HierarchyGenerator implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
+        long millisStart = System.currentTimeMillis();
+        long nextOutput = System.currentTimeMillis() + OUTPUT_INTERVAL_MS;
+
         long sizeBytes = parseSize(sizeStr);
         if (sizeBytes < 0 || count <= 0 || ratio < 0 || depth < 0) {
             error("ERROR: Cannot generate hierarchy with negative size, zero or negative count, negative ratio, or negative depth.");
             CommandLine.usage(this, System.err);
             return 1;
+        }
+
+        if (prefix == null || prefix.isBlank()) {
+            prefix = "Test_" + System.currentTimeMillis() + "_";
+        } else {
+            prefix = prefix + "_";
         }
 
         int numDirs = count / (ratio + 1);
@@ -102,65 +116,32 @@ public class HierarchyGenerator implements Callable<Integer> {
         createdDirs.add(targetDir);
 
         int dirsToCreate = numDirs - 1;
-        log(verbose, "INFO: Building the directory structure...");
+        log(verbose, "INFO: Building the directory structure for %d directories...".formatted(dirsToCreate));
 
-        // Step 1: Build the directory structure
-        List<Path> currentDepthDirs = new ArrayList<>();
-        currentDepthDirs.add(targetDir);
+        Path baseDir = targetDir;
+        Path lastDir = baseDir;
+        for (int i = 0; i < dirsToCreate; i++) {
+            Path parent = depth <= 1 || i % depth == 0 ? baseDir : lastDir;
+            Path dir = parent.resolve(prefix + i);
+            Files.createDirectories(dir);
+            createdDirs.add(dir);
+            lastDir = dir;
 
-        for (int d = 1; d <= depth; d++) {
-            if (dirsToCreate <= 0) break;
-
-            List<Path> nextDepthDirs = new ArrayList<>();
-            for (Path parent : currentDepthDirs) {
-                if (dirsToCreate <= 0) break;
-
-                int maxSub = Math.min(dirsToCreate, 5);
-                int subCount = random.nextInt(maxSub) + 1;
-
-                if (d == depth) subCount = 0;
-
-                for (int i = 0; i < subCount; i++) {
-                    Path dirName = parent.resolve("testdir_" + d + "_" + i + "_" + random.nextInt(10000));
-                    Files.createDirectories(dirName);
-                    nextDepthDirs.add(dirName);
-                    createdDirs.add(dirName);
-                    dirsToCreate--;
+            if (nextOutput < System.currentTimeMillis()) {
+                if (verbose) {
+                    log(verbose, "INFO: Created %d directories...".formatted(i));
                 }
-            }
-            if (nextDepthDirs.isEmpty()) break;
-            currentDepthDirs = nextDepthDirs;
-        }
-
-        // Fill the remaining directories randomly
-        int failSafe = 0;
-        while (dirsToCreate > 0 && failSafe < 1000000) {
-            Path parent = createdDirs.get(random.nextInt(createdDirs.size()));
-            int currentDepth = targetDir.relativize(parent).getNameCount();
-            if (parent.equals(targetDir)) currentDepth = 0;
-
-            if (currentDepth < depth) {
-                Path subDirName = parent.resolve("testdir_extra_" + dirsToCreate + "_" + random.nextInt(10000));
-                if (!Files.exists(subDirName)) {
-                    Files.createDirectories(subDirName);
-                    createdDirs.add(subDirName);
-                    dirsToCreate--;
-                    failSafe = 0;
-                } else {
-                    failSafe++;
-                }
-            } else {
-                failSafe++;
+                nextOutput = System.currentTimeMillis() + OUTPUT_INTERVAL_MS;
             }
         }
-        log(verbose, "INFO: Building the directory structure finished.");
+        log(verbose, "INFO: Creating %d directories finished.".formatted(dirsToCreate));
 
-        log(verbose, "INFO:Creating %d files...%n".formatted(numFiles));
         // Step 2: Distribute files and data
+        log(verbose, "INFO: Creating %d files...".formatted(numFiles));
         long remainingSizeBytes = sizeBytes;
         for (int i = 0; i < numFiles; i++) {
             Path parent = createdDirs.get(random.nextInt(createdDirs.size()));
-            Path fileName = parent.resolve("testfile_" + i + ".bin");
+            Path fileName = parent.resolve(prefix + i + ".bin");
 
             long size;
             if (i == numFiles - 1) {
@@ -173,9 +154,16 @@ public class HierarchyGenerator implements Callable<Integer> {
             }
 
             createRandomFile(fileName, size);
+            if (nextOutput < System.currentTimeMillis()) {
+                log(verbose, "INFO: Created %d files, %d bytes remaining...".formatted(i + 1, remainingSizeBytes));
+                nextOutput = System.currentTimeMillis() + OUTPUT_INTERVAL_MS;
+            }
+
             remainingSizeBytes -= size;
         }
+        log(verbose, "INFO: Creating %d files finished.".formatted(numFiles));
 
+        log(verbose, "INFO: Generation complete in %d ms.".formatted(System.currentTimeMillis() - millisStart));
         log(!quiet, "Generation complete.");
 
         return 0;
@@ -190,7 +178,7 @@ public class HierarchyGenerator implements Callable<Integer> {
             raf.setLength(size);
             // Optionally fill with random data.
             // For large files, filling with random data can be slow.
-            // Let's at least write some random bytes if it's small, or just seek and write one byte at the end.
+            // Let's at least write some random bytes if it's small and then just seek and write one byte at the end.
             byte[] buffer = new byte[(int) Math.min(size, 1024)];
             random.nextBytes(buffer);
             raf.write(buffer);

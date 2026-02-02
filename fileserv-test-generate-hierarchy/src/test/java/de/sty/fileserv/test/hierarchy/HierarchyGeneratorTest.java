@@ -279,6 +279,41 @@ class HierarchyGeneratorTest {
         }
     }
 
+    @Test
+    void testPrefixOption() throws Exception {
+        int count = 10;
+        String customPrefix = "myprefix";
+        String[] args = {"-q", "--prefix", customPrefix, "--count", "" + count, testDir.toString()};
+
+        int exitCode = new CommandLine(new HierarchyGenerator()).execute(args);
+
+        assertThat(exitCode).isEqualTo(0);
+
+        try (Stream<Path> walk = Files.walk(testDir)) {
+            walk.filter(path -> !path.equals(testDir)).forEach(path -> {
+                String fileName = path.getFileName().toString();
+                assertThat(fileName).startsWith(customPrefix);
+            });
+        }
+    }
+
+    @Test
+    void testDefaultPrefix() throws Exception {
+        int count = 10;
+        String[] args = {"-q", "--count", "" + count, testDir.toString()};
+
+        int exitCode = new CommandLine(new HierarchyGenerator()).execute(args);
+
+        assertThat(exitCode).isEqualTo(0);
+
+        try (Stream<Path> walk = Files.walk(testDir)) {
+            walk.filter(path -> !path.equals(testDir)).forEach(path -> {
+                String fileName = path.getFileName().toString();
+                assertThat(fileName).startsWith("Test_");
+            });
+        }
+    }
+
     /**
      * Counts files and directories recursively under a given path
      *
