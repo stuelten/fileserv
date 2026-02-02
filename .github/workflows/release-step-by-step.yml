@@ -326,7 +326,7 @@ jobs:
             --notes "Automated release of version $VERSION"
 
   post-release:
-    name: Release
+    name: Post Release
     needs: release
     runs-on: ubuntu-latest
     permissions:
