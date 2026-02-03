@@ -1,7 +1,7 @@
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
-COPY fileserv-app/target/fileserv-app.jar fileserv-app.jar
+COPY fileserv-app/target/fileserv-app*.jar fileserv-app.jar
 COPY VERSION ./
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
