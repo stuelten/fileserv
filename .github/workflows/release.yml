@@ -11,6 +11,9 @@ on:
         description: 'Trigger native builds asynchronously'
         type: boolean
         default: true
+  push:
+    branches:
+      - main
 
 jobs:
   prepare:
@@ -19,7 +22,7 @@ jobs:
     outputs:
       version: ${{ steps.version_increase.outputs.version }}
       next_snapshot: ${{ steps.version_increase.outputs.next_snapshot }}
-      trigger_native: ${{ github.event.inputs.trigger_native }}
+      trigger_native: ${{ steps.version_increase.outputs.trigger_native }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -36,6 +39,11 @@ jobs:
           VERSION_INPUT="${{ github.event.inputs.version }}"
           VERSION=${VERSION_INPUT:-$VERSION_INCREASED}
           
+          TRIGGER_NATIVE="${{ github.event.inputs.trigger_native }}"
+          if [ -z "$TRIGGER_NATIVE" ]; then
+            TRIGGER_NATIVE="true"
+          fi
+          
           # Calculate next snapshot version based on the released version
           # Split version into components
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
@@ -45,6 +53,7 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "next_snapshot=$NEXT_SNAPSHOT" >> $GITHUB_OUTPUT
+          echo "trigger_native=$TRIGGER_NATIVE" >> $GITHUB_OUTPUT
           echo "### Release Version: $VERSION" >> $GITHUB_STEP_SUMMARY
           echo "### Next Snapshot: $NEXT_SNAPSHOT" >> $GITHUB_STEP_SUMMARY
 
