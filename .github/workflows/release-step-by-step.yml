@@ -68,10 +68,12 @@ jobs:
           git add "**/pom.xml" "pom.xml" VERSION
           git commit -m "chore: release version $VERSION"
           git push origin "$BRANCH" --force
+          
+          echo "### Branch: $BRANCH" >> $GITHUB_STEP_SUMMARY
 
   build-java:
     name: Build Java Parts
-    needs: [prepare, create-release-branch]
+    needs: [ prepare, create-release-branch ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -98,9 +100,14 @@ jobs:
             !**/target/*-sources.jar
             !**/target/*-javadoc.jar
 
+      - name: Report results
+        run: |
+          echo "### Java Parts build:" >> $GITHUB_STEP_SUMMARY
+          find . -iname '*.jar' -type f -exec echo "- {}" \; >> $GITHUB_STEP_SUMMARY
+
   build-java-shaded-jars:
     name: Build Java Parts as All-in-One JARs
-    needs: [prepare, create-release-branch, build-java]
+    needs: [ prepare, create-release-branch, build-java ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -131,9 +138,14 @@ jobs:
             !**/target/*-sources.jar
             !**/target/*-javadoc.jar
 
+      - name: Report results
+        run: |
+          echo "### Java shaded-jars build:" >> $GITHUB_STEP_SUMMARY
+          find . -iname '*.jar' -type f -exec echo "- {}" \; >> $GITHUB_STEP_SUMMARY
+
   build-native:
     name: Build Native Binaries
-    needs: [prepare, create-release-branch, build-java-shaded-jars]
+    needs: [ prepare, create-release-branch, build-java-shaded-jars ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -174,7 +186,7 @@ jobs:
 
   build-docker:
     name: Build Docker Containers
-    needs: [prepare, create-release-branch, build-java-shaded-jars]
+    needs: [ prepare, create-release-branch, build-java-shaded-jars ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -192,7 +204,7 @@ jobs:
 
   quick-tests-mvn:
     name: Run Quick Tests (mvn)
-    needs: [prepare, create-release-branch, build-java]
+    needs: [ prepare, create-release-branch, build-java ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -216,7 +228,7 @@ jobs:
 
   quick-tests-bash:
     name: Run Quick Tests (bash)
-    needs: [prepare, create-release-branch, build-java]
+    needs: [ prepare, create-release-branch, build-java ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -242,7 +254,7 @@ jobs:
 
   long-running-tests:
     name: Start Long-Running Tests asynchronously
-    needs: [prepare, create-release-branch, build-java-shaded-jars, build-docker]
+    needs: [ prepare, create-release-branch, build-java-shaded-jars, build-docker ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -274,7 +286,7 @@ jobs:
 
   report-results:
     name: Report Build Results
-    needs: [prepare, build-java, build-java-shaded-jars, build-native]
+    needs: [ prepare, build-java, build-java-shaded-jars, build-native ]
     runs-on: ubuntu-latest
     steps:
       - name: Download JARs
@@ -307,7 +319,7 @@ jobs:
 
   release:
     name: Release
-    needs: [prepare, create-release-branch, build-java, build-java-shaded-jars, build-native, quick-tests-bash, quick-tests-mvn, report-results]
+    needs: [ prepare, create-release-branch, build-java, build-java-shaded-jars, build-native, quick-tests-bash, quick-tests-mvn, report-results ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -358,7 +370,7 @@ jobs:
 
   post-release:
     name: Post Release
-    needs: [prepare, release]
+    needs: [ prepare, release ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -379,7 +391,7 @@ jobs:
           NEXT_SNAPSHOT=${{ needs.prepare.outputs.next_snapshot }}
           echo "Next snapshot: $NEXT_SNAPSHOT"
           ./bin/version-set-snapshot.sh $NEXT_SNAPSHOT
-          
+
       - name: Push new version
         id: version_push
         run: |
