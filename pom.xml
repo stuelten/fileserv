@@ -12,6 +12,14 @@
     <name>fileserv-parent</name>
     <description>Parent POM for fileserv multi-module project</description>
 
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/stuelten/fileserv</url>
+        </repository>
+    </distributionManagement>
+
     <modules>
         <module>fileserv-core</module>
         <module>fileserv-auth-dummy</module>
