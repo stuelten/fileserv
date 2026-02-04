@@ -7,6 +7,10 @@ on:
         description: 'Version to release (leave empty for auto-increase)'
         required: false
         default: ''
+      skip_native:
+        description: 'Skip native builds'
+        type: boolean
+        default: false
 
 jobs:
   prepare:
@@ -15,6 +19,7 @@ jobs:
     outputs:
       version: ${{ steps.version_increase.outputs.version }}
       next_snapshot: ${{ steps.version_increase.outputs.next_snapshot }}
+      skip_native: ${{ github.event.inputs.skip_native }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -55,7 +60,7 @@ jobs:
       - name: Create and push release branch
         run: |
           VERSION=${{ needs.prepare.outputs.version }}
-          BRANCH="v$VERSION"
+          BRANCH="release-v$VERSION"
           
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -78,7 +83,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: v${{ needs.prepare.outputs.version }}
+          ref: release-v${{ needs.prepare.outputs.version }}
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
@@ -112,7 +117,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: v${{ needs.prepare.outputs.version }}
+          ref: release-v${{ needs.prepare.outputs.version }}
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
@@ -151,11 +156,12 @@ jobs:
   build-native:
     name: Build Native Binaries
     needs: [ prepare, create-release-branch, build-java-shaded-jars ]
+    if: needs.prepare.outputs.skip_native != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: v${{ needs.prepare.outputs.version }}
+          ref: release-v${{ needs.prepare.outputs.version }}
 
       - name: Set up GraalVM
         uses: graalvm/setup-graalvm@v1
@@ -213,7 +219,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: v${{ needs.prepare.outputs.version }}
+          ref: release-v${{ needs.prepare.outputs.version }}
 
       - name: Download Java Shaded Jars
         uses: actions/download-artifact@v7
@@ -231,7 +237,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: v${{ needs.prepare.outputs.version }}
+          ref: release-v${{ needs.prepare.outputs.version }}
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
@@ -255,7 +261,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: v${{ needs.prepare.outputs.version }}
+          ref: release-v${{ needs.prepare.outputs.version }}
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
@@ -281,7 +287,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: v${{ needs.prepare.outputs.version }}
+          ref: release-v${{ needs.prepare.outputs.version }}
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
@@ -309,6 +315,7 @@ jobs:
   report-results:
     name: Report Build Results
     needs: [ prepare, build-java, build-java-shaded-jars, build-native ]
+    if: always() && needs.prepare.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Download JARs
@@ -324,6 +331,7 @@ jobs:
           path: results/shaded-jars
 
       - name: Download Native Binaries
+        if: needs.prepare.outputs.skip_native != 'true'
         uses: actions/download-artifact@v7
         with:
           name: fileserv-native-binaries-${{ needs.prepare.outputs.version }}
@@ -346,17 +354,20 @@ jobs:
             echo "| $jar | $SIZE |"
           done >> $GITHUB_STEP_SUMMARY
 
-          echo "#### Native Binaries" >> $GITHUB_STEP_SUMMARY
-          echo "| Native Binary | Size (KB) |" >> $GITHUB_STEP_SUMMARY
-          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
-          find results/native -type f | sort | while read bin ; do
-            SIZE=$(ls -sk "$bin" | cut -d' ' -f1)
-            echo "| $bin | $SIZE |"
-          done >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.prepare.outputs.skip_native }}" != "true" ]; then
+            echo "#### Native Binaries" >> $GITHUB_STEP_SUMMARY
+            echo "| Native Binary | Size (KB) |" >> $GITHUB_STEP_SUMMARY
+            echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+            find results/native -type f | sort | while read bin ; do
+              SIZE=$(ls -sk "$bin" | cut -d' ' -f1)
+              echo "| $bin | $SIZE |"
+            done >> $GITHUB_STEP_SUMMARY
+          fi
 
   release:
     name: Release
     needs: [ prepare, create-release-branch, build-java, build-java-shaded-jars, build-native, quick-tests-bash, quick-tests-mvn, report-results ]
+    if: always() && needs.prepare.result == 'success' && needs.create-release-branch.result == 'success' && needs.build-java.result == 'success' && needs.build-java-shaded-jars.result == 'success' && (needs.prepare.outputs.skip_native == 'true' || needs.build-native.result == 'success') && needs.quick-tests-bash.result == 'success' && needs.quick-tests-mvn.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -364,7 +375,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          ref: v${{ needs.prepare.outputs.version }}
+          ref: release-v${{ needs.prepare.outputs.version }}
 
       - name: Download JARs
         uses: actions/download-artifact@v7
@@ -372,6 +383,7 @@ jobs:
           name: fileserv-java-artifacts-${{ needs.prepare.outputs.version }}
 
       - name: Download Native Binaries
+        if: needs.prepare.outputs.skip_native != 'true'
         uses: actions/download-artifact@v7
         with:
           name: fileserv-native-binaries-${{ needs.prepare.outputs.version }}
@@ -389,21 +401,24 @@ jobs:
           git tag -a "v$VERSION" -m "Version $VERSION"
           git push origin "v$VERSION"
           
-          # Move native binaries to expected locations for gh release
-          mkdir -p fileserv-auth-file/fileserv-auth-file-smbpasswd/target/
-          mkdir -p fileserv-test-generate-hierarchy/target/
-          mkdir -p fileserv-test-webdav/target/
+          RELEASE_ARGS=(create "v$VERSION" --title "Version $VERSION" --notes "Automated release of version $VERSION")
+
+          if [ "${{ needs.prepare.outputs.skip_native }}" != "true" ]; then
+            # Move native binaries to expected locations for gh release
+            mkdir -p fileserv-auth-file/fileserv-auth-file-smbpasswd/target/
+            mkdir -p fileserv-test-generate-hierarchy/target/
+            mkdir -p fileserv-test-webdav/target/
+            
+            cp ./native-binaries/fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd fileserv-auth-file/fileserv-auth-file-smbpasswd/target/
+            cp ./native-binaries/fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy fileserv-test-generate-hierarchy/target/
+            cp ./native-binaries/fileserv-test-webdav/target/fileserv-test-webdav fileserv-test-webdav/target/
+
+            RELEASE_ARGS+=("fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd")
+            RELEASE_ARGS+=("fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy")
+            RELEASE_ARGS+=("fileserv-test-webdav/target/fileserv-test-webdav")
+          fi
           
-          cp ./native-binaries/fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd fileserv-auth-file/fileserv-auth-file-smbpasswd/target/
-          cp ./native-binaries/fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy fileserv-test-generate-hierarchy/target/
-          cp ./native-binaries/fileserv-test-webdav/target/fileserv-test-webdav fileserv-test-webdav/target/
-          
-          gh release create "v$VERSION" \
-            "fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd" \
-            "fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy" \
-            "fileserv-test-webdav/target/fileserv-test-webdav" \
-            --title "Version $VERSION" \
-            --notes "Automated release of version $VERSION"
+          gh release "${RELEASE_ARGS[@]}"
 
   post-release:
     name: Post Release
