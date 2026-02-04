@@ -81,6 +81,9 @@ jobs:
     name: Build Java Parts
     needs: [ prepare, create-release-branch ]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -92,11 +95,13 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
+          server-id: github
+          settings-path: ${{ github.workspace }}
 
       - name: Build with Maven
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./mvnw --batch-mode -DskipTests deploy
+        run: ./mvnw --batch-mode -s ${{ github.workspace }}/settings.xml -DskipTests deploy
 
       - name: Upload JARs
         uses: actions/upload-artifact@v6
@@ -122,6 +127,9 @@ jobs:
     name: Build Java Parts as All-in-One JARs
     needs: [ prepare, create-release-branch, build-java ]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -133,6 +141,8 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
+          server-id: github
+          settings-path: ${{ github.workspace }}
 
       - name: Download Java Build artifacts
         uses: actions/download-artifact@v7
@@ -142,7 +152,7 @@ jobs:
       - name: Build with Maven
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./mvnw --batch-mode -DskipTests -Pshaded-jar deploy
+        run: ./mvnw --batch-mode -s ${{ github.workspace }}/settings.xml -DskipTests -Pshaded-jar deploy
 
       - name: Upload JARs
         uses: actions/upload-artifact@v6
