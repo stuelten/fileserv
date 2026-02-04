@@ -101,7 +101,7 @@ jobs:
       - name: Build with Maven
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./mvnw --batch-mode -s ${{ github.workspace }}/settings.xml -DskipTests package
+        run: ./mvnw --batch-mode -s ${{ github.workspace }}/settings.xml -DskipTests install
 
       - name: Upload JARs
         uses: actions/upload-artifact@v6
@@ -118,7 +118,7 @@ jobs:
           echo "### Java Parts build:" >> $GITHUB_STEP_SUMMARY
           echo "| JARs | Size (KB) |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
-          find results/jars -name "*.jar" -type f | sort | while read jar ; do
+          find . -name "*.jar" -type f | sort | while read jar ; do
             SIZE=$(ls -sk "$jar" | cut -d' ' -f1)
             echo "| $jar | $SIZE |"
           done >> $GITHUB_STEP_SUMMARY
@@ -152,7 +152,7 @@ jobs:
       - name: Build with Maven
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./mvnw --batch-mode -s ${{ github.workspace }}/settings.xml -DskipTests -Pshaded-jar package
+        run: ./mvnw --batch-mode -s ${{ github.workspace }}/settings.xml -DskipTests -Pshaded-jar install
 
       - name: Upload JARs
         uses: actions/upload-artifact@v6
@@ -420,7 +420,14 @@ jobs:
   release:
     name: Release
     needs: [ prepare, create-release-branch, build-java, build-java-shaded-jars, build-native, quick-tests-bash, quick-tests-mvn, report-results ]
-    if: always() && needs.prepare.result == 'success' && needs.create-release-branch.result == 'success' && needs.build-java.result == 'success' && needs.build-java-shaded-jars.result == 'success' && (needs.prepare.outputs.skip_native == 'true' || needs.build-native.result == 'success') && needs.quick-tests-bash.result == 'success' && needs.quick-tests-mvn.result == 'success'
+    if: always()
+      && needs.prepare.result == 'success'
+      && needs.create-release-branch.result == 'success'
+      && needs.build-java.result == 'success'
+      && needs.build-java-shaded-jars.result == 'success' 
+      && (needs.prepare.outputs.skip_native == 'true' || needs.build-native.result == 'success')
+      && needs.quick-tests-bash.result == 'success'
+      && needs.quick-tests-mvn.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
