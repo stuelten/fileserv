@@ -52,6 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -93,7 +94,9 @@ jobs:
           cache: 'maven'
 
       - name: Build with Maven
-        run: ./mvnw --batch-mode -DskipTests install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./mvnw --batch-mode -DskipTests deploy
 
       - name: Upload JARs
         uses: actions/upload-artifact@v6
@@ -108,8 +111,8 @@ jobs:
       - name: Report results
         run: |
           echo "### Java Parts build:" >> $GITHUB_STEP_SUMMARY
-          echo "#### JARs" >> $GITHUB_STEP_SUMMARY
           echo "| JARs | Size (KB) |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
           find results/jars -name "*.jar" -type f | sort | while read jar ; do
             SIZE=$(ls -sk "$jar" | cut -d' ' -f1)
             echo "| $jar | $SIZE |"
@@ -137,7 +140,9 @@ jobs:
           name: fileserv-java-artifacts-${{ needs.prepare.outputs.version }}
 
       - name: Build with Maven
-        run: ./mvnw --batch-mode -DskipTests -Pshaded-jar install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./mvnw --batch-mode -DskipTests -Pshaded-jar deploy
 
       - name: Upload JARs
         uses: actions/upload-artifact@v6
@@ -218,9 +223,12 @@ jobs:
           done >> $GITHUB_STEP_SUMMARY
 
   build-docker:
-    name: Build Docker Containers
+    name: Build and Push Docker Containers
     needs: [ prepare, create-release-branch, build-java-shaded-jars ]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -231,9 +239,24 @@ jobs:
         with:
           name: fileserv-java-shaded-jars-${{ needs.prepare.outputs.version }}
 
-      - name: Build Docker Image
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
         run: |
-          docker build -t fileserv-app .
+          VERSION=${{ needs.prepare.outputs.version }}
+          IMAGE_ID=ghcr.io/${{ github.repository }}/fileserv-app
+          
+          # Convert IMAGE_ID to lowercase
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+          
+          docker build -t $IMAGE_ID:$VERSION -t $IMAGE_ID:latest .
+          docker push $IMAGE_ID:$VERSION
+          docker push $IMAGE_ID:latest
 
   quick-tests-mvn:
     name: Run Quick Tests (mvn)
@@ -319,10 +342,23 @@ jobs:
 
   report-results:
     name: Report Build Results
-    needs: [ prepare, build-java, build-java-shaded-jars, build-native ]
+    needs: [ prepare, build-java, build-java-shaded-jars, build-native, build-docker ]
     if: always() && needs.prepare.result == 'success'
     runs-on: ubuntu-latest
     steps:
+      - name: Report Results
+        run: |
+          VERSION=${{ needs.prepare.outputs.version }}
+          echo "### Build Results for Version $VERSION" >> $GITHUB_STEP_SUMMARY
+          
+          IMAGE_ID=ghcr.io/${{ github.repository }}/fileserv-app
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+          
+          echo "#### Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- **Docker Image:** \`$IMAGE_ID:$VERSION\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Maven Packages:** [GitHub Packages](https://github.com/${{ github.repository }}/packages)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
       - name: Download JARs
         uses: actions/download-artifact@v7
         with:
@@ -344,9 +380,10 @@ jobs:
 
       - name: Report Results
         run: |
-          echo "### Build Results for Version ${{ needs.prepare.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "#### Artifact Details" >> $GITHUB_STEP_SUMMARY
           echo "#### JARs" >> $GITHUB_STEP_SUMMARY
           echo "| JARs | Size (KB) |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
           find results/jars -name "*.jar" -type f | sort | while read jar ; do
             SIZE=$(ls -sk "$jar" | cut -d' ' -f1)
             echo "| $jar | $SIZE |"
@@ -414,7 +451,7 @@ jobs:
             mkdir -p fileserv-auth-file/fileserv-auth-file-smbpasswd/target/
             mkdir -p fileserv-test-generate-hierarchy/target/
             mkdir -p fileserv-test-webdav/target/
-            
+          
             cp ./native-binaries/fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd fileserv-auth-file/fileserv-auth-file-smbpasswd/target/
             cp ./native-binaries/fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy fileserv-test-generate-hierarchy/target/
             cp ./native-binaries/fileserv-test-webdav/target/fileserv-test-webdav fileserv-test-webdav/target/
