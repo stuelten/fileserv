@@ -1,0 +1,77 @@
+name: Release Native Binaries
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build for'
+        required: true
+        type: string
+
+jobs:
+  build-native:
+    name: Build Native Binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: release-v${{ github.event.inputs.version }}
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'true'
+          cache: 'maven'
+
+      - name: Build Native Binaries
+        run: ./mvnw --batch-mode -DskipTests -Pnative install
+
+      - name: Upload Native Binaries
+        uses: actions/upload-artifact@v6
+        with:
+          name: fileserv-native-binaries-${{ github.event.inputs.version }}
+          path: |
+            fileserv-app/fileserv-app/target/fileserv-app
+            fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd
+            fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy
+            fileserv-test-webdav/target/fileserv-test-webdav
+
+      - name: Report results
+        run: |
+          echo "### Native Binaries build:" >> $GITHUB_STEP_SUMMARY
+          echo "| Native Binary | Size (KB) |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          FILES="fileserv-app/fileserv-app/target/fileserv-app
+                 fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd
+                 fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy
+                 fileserv-test-webdav/target/fileserv-test-webdav"
+          for bin in $FILES; do
+            if [ -f "$bin" ]; then
+              SIZE=$(ls -sk "$bin" | cut -d' ' -f1)
+              echo "| $bin | $SIZE |"
+            fi
+          done >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload to Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ github.event.inputs.version }}
+          FILES="fileserv-app/fileserv-app/target/fileserv-app
+                 fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd
+                 fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy
+                 fileserv-test-webdav/target/fileserv-test-webdav"
+          
+          # Check if release exists before trying to upload
+          if gh release view "v$VERSION" > /dev/null 2>&1; then
+            for bin in $FILES; do
+              if [ -f "$bin" ]; then
+                gh release upload "v$VERSION" "$bin" --clobber
+              fi
+            done
+          else
+            echo "Release v$VERSION not found. Skipping upload."
+          fi

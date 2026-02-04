@@ -1,4 +1,4 @@
-name: Release (step-by-step)
+name: Release artifacts
 
 on:
   workflow_dispatch:
@@ -7,10 +7,10 @@ on:
         description: 'Version to release (leave empty for auto-increase)'
         required: false
         default: ''
-      skip_native:
-        description: 'Skip native builds'
+      trigger_native:
+        description: 'Trigger native builds asynchronously'
         type: boolean
-        default: false
+        default: true
 
 jobs:
   prepare:
@@ -19,7 +19,7 @@ jobs:
     outputs:
       version: ${{ steps.version_increase.outputs.version }}
       next_snapshot: ${{ steps.version_increase.outputs.next_snapshot }}
-      skip_native: ${{ github.event.inputs.skip_native }}
+      trigger_native: ${{ github.event.inputs.trigger_native }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -173,64 +173,6 @@ jobs:
             echo "| $jar | $SIZE |"
           done >> $GITHUB_STEP_SUMMARY
 
-  build-native:
-    name: Build Native Binaries
-    needs: [ prepare, create-release-branch, build-java-shaded-jars ]
-    if: needs.prepare.outputs.skip_native != 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: release-v${{ needs.prepare.outputs.version }}
-
-      - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@v1
-        with:
-          java-version: '21'
-          distribution: 'graalvm'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          native-image-job-reports: 'true'
-          cache: 'maven'
-
-      - name: Download Java Build artifacts
-        uses: actions/download-artifact@v7
-        with:
-          name: fileserv-java-artifacts-${{ needs.prepare.outputs.version }}
-
-      - name: Download Java Shaded Jars
-        uses: actions/download-artifact@v7
-        with:
-          name: fileserv-java-shaded-jars-${{ needs.prepare.outputs.version }}
-
-      - name: Build Native Binaries
-        run: ./mvnw --batch-mode -DskipTests -Pnative install
-
-      - name: Upload Native Binaries
-        uses: actions/upload-artifact@v6
-        with:
-          name: fileserv-native-binaries-${{ needs.prepare.outputs.version }}
-          path: |
-            fileserv-app/fileserv-app/target/fileserv-app
-            fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd
-            fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy
-            fileserv-test-webdav/target/fileserv-test-webdav
-
-      - name: Report results
-        run: |
-          echo "### Native Binaries build:" >> $GITHUB_STEP_SUMMARY
-          echo "| Native Binary | Size (KB) |" >> $GITHUB_STEP_SUMMARY
-          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
-          # List the specific binaries we just built
-          FILES="fileserv-app/fileserv-app/target/fileserv-app
-                 fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd
-                 fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy
-                 fileserv-test-webdav/target/fileserv-test-webdav"
-          for bin in $FILES; do
-            if [ -f "$bin" ]; then
-              SIZE=$(ls -sk "$bin" | cut -d' ' -f1)
-              echo "| $bin | $SIZE |"
-            fi
-          done >> $GITHUB_STEP_SUMMARY
 
   build-docker:
     name: Build and Push Docker Containers
@@ -352,7 +294,7 @@ jobs:
 
   report-results:
     name: Report Build Results
-    needs: [ prepare, build-java, build-java-shaded-jars, build-native, build-docker ]
+    needs: [ prepare, build-java, build-java-shaded-jars, build-docker ]
     if: always() && needs.prepare.result == 'success'
     runs-on: ubuntu-latest
     steps:
@@ -381,13 +323,6 @@ jobs:
           name: fileserv-java-shaded-jars-${{ needs.prepare.outputs.version }}
           path: results/shaded-jars
 
-      - name: Download Native Binaries
-        if: needs.prepare.outputs.skip_native != 'true'
-        uses: actions/download-artifact@v7
-        with:
-          name: fileserv-native-binaries-${{ needs.prepare.outputs.version }}
-          path: results/native
-
       - name: Report Results
         run: |
           echo "#### Artifact Details" >> $GITHUB_STEP_SUMMARY
@@ -407,27 +342,9 @@ jobs:
             echo "| $jar | $SIZE |"
           done >> $GITHUB_STEP_SUMMARY
 
-          if [ "${{ needs.prepare.outputs.skip_native }}" != "true" ]; then
-            echo "#### Native Binaries" >> $GITHUB_STEP_SUMMARY
-            echo "| Native Binary | Size (KB) |" >> $GITHUB_STEP_SUMMARY
-            echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
-            find results/native -type f | sort | while read bin ; do
-              SIZE=$(ls -sk "$bin" | cut -d' ' -f1)
-              echo "| $bin | $SIZE |"
-            done >> $GITHUB_STEP_SUMMARY
-          fi
-
   release:
     name: Release
-    needs: [ prepare, create-release-branch, build-java, build-java-shaded-jars, build-native, quick-tests-bash, quick-tests-mvn, report-results ]
-    if: always()
-      && needs.prepare.result == 'success'
-      && needs.create-release-branch.result == 'success'
-      && needs.build-java.result == 'success'
-      && needs.build-java-shaded-jars.result == 'success' 
-      && (needs.prepare.outputs.skip_native == 'true' || needs.build-native.result == 'success')
-      && needs.quick-tests-bash.result == 'success'
-      && needs.quick-tests-mvn.result == 'success'
+    needs: [ prepare, create-release-branch, build-java, build-java-shaded-jars, quick-tests-bash, quick-tests-mvn, report-results ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -457,13 +374,6 @@ jobs:
         with:
           name: fileserv-java-artifacts-${{ needs.prepare.outputs.version }}
 
-      - name: Download Native Binaries
-        if: needs.prepare.outputs.skip_native != 'true'
-        uses: actions/download-artifact@v7
-        with:
-          name: fileserv-native-binaries-${{ needs.prepare.outputs.version }}
-          path: ./native-binaries
-
       - name: Prepare Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -476,24 +386,19 @@ jobs:
           git tag -a "v$VERSION" -m "Version $VERSION"
           git push origin "v$VERSION"
           
-          RELEASE_ARGS=(create "v$VERSION" --title "Version $VERSION" --notes "Automated release of version $VERSION")
+          gh release create "v$VERSION" --title "Version $VERSION" --notes "Automated release of version $VERSION"
 
-          if [ "${{ needs.prepare.outputs.skip_native }}" != "true" ]; then
-            # Move native binaries to expected locations for gh release
-            mkdir -p fileserv-auth-file/fileserv-auth-file-smbpasswd/target/
-            mkdir -p fileserv-test-generate-hierarchy/target/
-            mkdir -p fileserv-test-webdav/target/
-          
-            cp ./native-binaries/fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd fileserv-auth-file/fileserv-auth-file-smbpasswd/target/
-            cp ./native-binaries/fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy fileserv-test-generate-hierarchy/target/
-            cp ./native-binaries/fileserv-test-webdav/target/fileserv-test-webdav fileserv-test-webdav/target/
-
-            RELEASE_ARGS+=("fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd")
-            RELEASE_ARGS+=("fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy")
-            RELEASE_ARGS+=("fileserv-test-webdav/target/fileserv-test-webdav")
-          fi
-          
-          gh release "${RELEASE_ARGS[@]}"
+  trigger-native-build:
+    name: Trigger Native Binaries Build
+    needs: [ prepare, release ]
+    if: needs.prepare.outputs.trigger_native == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Release Native Binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run release-native-binaries.yml -f version=${{ needs.prepare.outputs.version }}
 
   post-release:
     name: Post Release
