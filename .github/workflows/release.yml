@@ -36,8 +36,10 @@ jobs:
           VERSION_INPUT="${{ github.event.inputs.version }}"
           VERSION=${VERSION_INPUT:-$VERSION_INCREASED}
           
-          # Calculate next snapshot version (assuming minor increment for the next development cycle)
-          NEXT_VERSION=$(./bin/version-increase-semver.sh minor)
+          # Calculate next snapshot version based on the released version
+          # Split version into components
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          NEXT_VERSION="$MAJOR.$((MINOR + 1)).0"
           NEXT_SNAPSHOT="${NEXT_VERSION}-SNAPSHOT"
 
           echo "VERSION=$VERSION" >> $GITHUB_ENV
@@ -394,6 +396,8 @@ jobs:
     needs: [ prepare, release ]
     if: needs.prepare.outputs.trigger_native == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
     steps:
       - uses: actions/checkout@v6
 
@@ -431,5 +435,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           git add "**/pom.xml" "pom.xml" VERSION
-          git commit -m "chore: Bump snapshot version to ${{ needs.prepare.outputs.next_snapshot }}"
+          git commit -m "chore: Bump snapshot version to ${{ needs.prepare.outputs.next_snapshot }}" || echo "Nothing to commit"
           git push origin main
