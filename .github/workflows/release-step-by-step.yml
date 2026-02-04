@@ -108,7 +108,12 @@ jobs:
       - name: Report results
         run: |
           echo "### Java Parts build:" >> $GITHUB_STEP_SUMMARY
-          find . -iname '*.jar' -type f -exec echo "- {}" \; >> $GITHUB_STEP_SUMMARY
+          echo "#### JARs" >> $GITHUB_STEP_SUMMARY
+          echo "| JARs | Size (KB) |" >> $GITHUB_STEP_SUMMARY
+          find results/jars -name "*.jar" -type f | sort | while read jar ; do
+            SIZE=$(ls -sk "$jar" | cut -d' ' -f1)
+            echo "| $jar | $SIZE |"
+          done >> $GITHUB_STEP_SUMMARY
 
   build-java-shaded-jars:
     name: Build Java Parts as All-in-One JARs
