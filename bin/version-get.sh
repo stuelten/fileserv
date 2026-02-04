@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 show_help() {
-  echo "Usage: ./bin/version-get.sh [OPTIONS]"
+  echo "Usage: $0 [OPTIONS]"
   echo ""
   echo "Either get the version based on git commit messages since the last tag or use version from pom.xml."
   echo ""
@@ -36,6 +36,7 @@ done
 
 # Default to the version from pom.xml if no tags found
 get_base_version() {
+    local LATEST_TAG
     LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
     if [ -n "$LATEST_TAG" ]; then
         echo "${LATEST_TAG#v}"

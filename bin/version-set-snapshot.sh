@@ -15,7 +15,7 @@ source "$SCRIPT_DIR/common.sh"
 cd "$SCRIPT_DIR/.."
 
 show_help() {
-  echo "Usage: ./bin/version-set-snapshot.sh [OPTIONS] [major|minor|NEW_VERSION]"
+  echo "Usage: $0 [OPTIONS] [major|minor|NEW_VERSION]"
   echo ""
   echo "Set a new SNAPSHOT version in maven pom.xml files."
   echo ""

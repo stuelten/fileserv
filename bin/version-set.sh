@@ -16,7 +16,7 @@ source "$SCRIPT_DIR/common.sh"
 cd "$SCRIPT_DIR/.."
 
 show_help() {
-  echo "Usage: ./bin/version-set.sh [OPTIONS] [major|minor|NEW_VERSION]"
+  echo "Usage: $0 [OPTIONS] [major|minor|NEW_VERSION]"
   echo ""
   echo "Sets a new version."   
   echo "Updates versions in maven pom.xml files and VERSION file."

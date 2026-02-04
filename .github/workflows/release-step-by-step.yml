@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version_increase.outputs.version }}
+      next_snapshot: ${{ steps.version_increase.outputs.next_snapshot }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -30,15 +31,52 @@ jobs:
           VERSION_INPUT="${{ github.event.inputs.version }}"
           VERSION=${VERSION_INPUT:-$VERSION_INCREASED}
           
+          # Calculate next snapshot version (assuming minor increment for the next development cycle)
+          NEXT_VERSION=$(./bin/version-increase-semver.sh minor)
+          NEXT_SNAPSHOT="${NEXT_VERSION}-SNAPSHOT"
+
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "next_snapshot=$NEXT_SNAPSHOT" >> $GITHUB_OUTPUT
+          echo "### Release Version: $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Snapshot: $NEXT_SNAPSHOT" >> $GITHUB_STEP_SUMMARY
+
+  create-release-branch:
+    name: Create Release Branch
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create and push release branch
+        run: |
+          VERSION=${{ needs.prepare.outputs.version }}
+          BRANCH="v$VERSION"
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git checkout -b "$BRANCH"
+          
+          chmod +x bin/version-set.sh
+          ./bin/version-set.sh "$VERSION"
+          
+          git add "**/pom.xml" "pom.xml" VERSION
+          git commit -m "chore: release version $VERSION"
+          git push origin "$BRANCH" --force
 
   build-java:
     name: Build Java Parts
-    needs: prepare
+    needs: [prepare, create-release-branch]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: v${{ needs.prepare.outputs.version }}
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
@@ -46,11 +84,6 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
-
-      - name: Set version
-        run: |
-          chmod +x bin/version-set.sh
-          ./bin/version-set.sh ${{ needs.prepare.outputs.version }}
 
       - name: Build with Maven
         run: ./mvnw --batch-mode -DskipTests install
@@ -67,10 +100,12 @@ jobs:
 
   build-java-shaded-jars:
     name: Build Java Parts as All-in-One JARs
-    needs: [prepare, build-java]
+    needs: [prepare, create-release-branch, build-java]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: v${{ needs.prepare.outputs.version }}
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
@@ -83,11 +118,6 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           name: fileserv-java-artifacts-${{ needs.prepare.outputs.version }}
-
-      - name: Set version
-        run: |
-          chmod +x bin/version-set.sh
-          ./bin/version-set.sh ${{ needs.prepare.outputs.version }}
 
       - name: Build with Maven
         run: ./mvnw --batch-mode -DskipTests -Pshaded-jar install
@@ -103,10 +133,12 @@ jobs:
 
   build-native:
     name: Build Native Binaries
-    needs: [prepare, build-java-shaded-jars]
+    needs: [prepare, create-release-branch, build-java-shaded-jars]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: v${{ needs.prepare.outputs.version }}
 
       - name: Set up GraalVM
         uses: graalvm/setup-graalvm@v1
@@ -116,11 +148,6 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: 'true'
           cache: 'maven'
-
-      - name: Set version
-        run: |
-          chmod +x bin/version-set.sh
-          ./bin/version-set.sh ${{ needs.prepare.outputs.version }}
 
       - name: Download Java Build artifacts
         uses: actions/download-artifact@v7
@@ -147,10 +174,12 @@ jobs:
 
   build-docker:
     name: Build Docker Containers
-    needs: [prepare, build-java-shaded-jars]
+    needs: [prepare, create-release-branch, build-java-shaded-jars]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: v${{ needs.prepare.outputs.version }}
 
       - name: Download Java Shaded Jars
         uses: actions/download-artifact@v7
@@ -159,14 +188,16 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker build -t fileserv .
+          docker build -t fileserv-app .
 
   quick-tests-mvn:
     name: Run Quick Tests (mvn)
-    needs: [prepare, build-java]
+    needs: [prepare, create-release-branch, build-java]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: v${{ needs.prepare.outputs.version }}
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
@@ -185,10 +216,12 @@ jobs:
 
   quick-tests-bash:
     name: Run Quick Tests (bash)
-    needs: [prepare, build-java]
+    needs: [prepare, create-release-branch, build-java]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: v${{ needs.prepare.outputs.version }}
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
@@ -209,10 +242,12 @@ jobs:
 
   long-running-tests:
     name: Start Long-Running Tests asynchronously
-    needs: [prepare, build-java-shaded-jars, build-docker]
+    needs: [prepare, create-release-branch, build-java-shaded-jars, build-docker]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: v${{ needs.prepare.outputs.version }}
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
@@ -262,7 +297,7 @@ jobs:
 
       - name: Report Results
         run: |
-          echo "### Build Results" >> $GITHUB_STEP_SUMMARY
+          echo "### Build Results for Version ${{ needs.prepare.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "#### JARs" >> $GITHUB_STEP_SUMMARY
           find results/jars -name "*.jar" -type f | sort >> $GITHUB_STEP_SUMMARY
           echo "#### Shaded JARs" >> $GITHUB_STEP_SUMMARY
@@ -272,7 +307,7 @@ jobs:
 
   release:
     name: Release
-    needs: [prepare, build-java, build-java-shaded-jars, build-native, quick-tests-bash, quick-tests-mvn, report-results]
+    needs: [prepare, create-release-branch, build-java, build-java-shaded-jars, build-native, quick-tests-bash, quick-tests-mvn, report-results]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -280,6 +315,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: v${{ needs.prepare.outputs.version }}
 
       - name: Download JARs
         uses: actions/download-artifact@v7
@@ -297,16 +333,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION=${{ needs.prepare.outputs.version }}
-          chmod +x bin/version-set.sh
-          ./bin/version-set.sh $VERSION
           
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          git add "**/pom.xml" "pom.xml"
-          git commit -m "chore: release version $VERSION"
           git tag -a "v$VERSION" -m "Version $VERSION"
-          git push origin main
           git push origin "v$VERSION"
           
           # Move native binaries to expected locations for gh release
@@ -327,7 +358,7 @@ jobs:
 
   post-release:
     name: Post Release
-    needs: release
+    needs: [prepare, release]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -335,6 +366,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: main
 
       - name: Bump new snapshot version
         id: version_bump
@@ -344,9 +376,9 @@ jobs:
           chmod +x bin/version-set-snapshot.sh
           echo "Current version:  $(./bin/version-get.sh)"
 
-          VERSION_INCREASED=$(./bin/version-increase-semver.sh minor)
-          echo "Next minor: $VERSION_INCREASED"
-          ./bin/version-set-snapshot.sh $VERSION_INCREASED
+          NEXT_SNAPSHOT=${{ needs.prepare.outputs.next_snapshot }}
+          echo "Next snapshot: $NEXT_SNAPSHOT"
+          ./bin/version-set-snapshot.sh $NEXT_SNAPSHOT
           
       - name: Push new version
         id: version_push
@@ -354,8 +386,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add "**/pom.xml" "pom.xml"
-          git commit -m "chore: Bump snapshot version $VERSION"
-          git tag -a "v$VERSION" -m "Version $VERSION"
+          git add "**/pom.xml" "pom.xml" VERSION
+          git commit -m "chore: Bump snapshot version to ${{ needs.prepare.outputs.next_snapshot }}"
           git push origin main
-          git push origin "v$VERSION"

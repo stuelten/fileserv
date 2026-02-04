@@ -17,7 +17,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 show_help() {
-  echo "Usage: ./bin/version-increase-semver.sh [OPTIONS] [major|minor]"
+  echo "Usage: $0 [OPTIONS] [major|minor]"
   echo ""
   echo "Estimates the next version based on git commit messages since the last tag."
   echo "If 'major' or 'minor' is provided as an argument, it forces that increment."
@@ -59,18 +59,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Default to the version from pom.xml if no tags found
-get_base_version() {
-    LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-    if [ -n "$LATEST_TAG" ]; then
-        echo "${LATEST_TAG#v}"
-    else
-        # Fallback to pom.xml version, removing -SNAPSHOT
-        ./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout | grep -v "\[" | tail -n 1 | sed 's/-SNAPSHOT//'
-    fi
-}
-
-CURRENT_VERSION=$(get_base_version)
+CURRENT_VERSION=$("$SCRIPT_DIR"/version-get.sh)
 LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
 
 # Split version into components
