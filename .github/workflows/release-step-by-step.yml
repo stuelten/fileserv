@@ -141,7 +141,12 @@ jobs:
       - name: Report results
         run: |
           echo "### Java shaded-jars build:" >> $GITHUB_STEP_SUMMARY
-          find . -iname '*.jar' -type f -exec echo "- {}" \; >> $GITHUB_STEP_SUMMARY
+          echo "| Shaded JAR | Size (KB) |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          find . -iname '*.jar' -type f | while read jar ; do
+            SIZE=$(ls -sk "$jar" | cut -d' ' -f1)
+            echo "| $jar | $SIZE |"
+          done >> $GITHUB_STEP_SUMMARY
 
   build-native:
     name: Build Native Binaries
@@ -183,6 +188,23 @@ jobs:
             fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd
             fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy
             fileserv-test-webdav/target/fileserv-test-webdav
+
+      - name: Report results
+        run: |
+          echo "### Native Binaries build:" >> $GITHUB_STEP_SUMMARY
+          echo "| Native Binary | Size (KB) |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          # List the specific binaries we just built
+          FILES="fileserv-app/fileserv-app/target/fileserv-app
+                 fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd
+                 fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy
+                 fileserv-test-webdav/target/fileserv-test-webdav"
+          for bin in $FILES; do
+            if [ -f "$bin" ]; then
+              SIZE=$(ls -sk "$bin" | cut -d' ' -f1)
+              echo "| $bin | $SIZE |"
+            fi
+          done >> $GITHUB_STEP_SUMMARY
 
   build-docker:
     name: Build Docker Containers
@@ -311,11 +333,26 @@ jobs:
         run: |
           echo "### Build Results for Version ${{ needs.prepare.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "#### JARs" >> $GITHUB_STEP_SUMMARY
-          find results/jars -name "*.jar" -type f | sort >> $GITHUB_STEP_SUMMARY
+          find results/jars -name "*.jar" -type f | sort | while read jar ; do
+            SIZE=$(ls -sk "$jar" | cut -d' ' -f1)
+            echo "| $jar | $SIZE |"
+          done >> $GITHUB_STEP_SUMMARY
+
           echo "#### Shaded JARs" >> $GITHUB_STEP_SUMMARY
-          find results/shaded-jars -name "*.jar" -type f | sort >> $GITHUB_STEP_SUMMARY
+          echo "| Shaded JAR | Size (KB) |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          find results/shaded-jars -name "*.jar" -type f | sort | while read jar ; do
+            SIZE=$(ls -sk "$jar" | cut -d' ' -f1)
+            echo "| $jar | $SIZE |"
+          done >> $GITHUB_STEP_SUMMARY
+
           echo "#### Native Binaries" >> $GITHUB_STEP_SUMMARY
-          find results/native -type f | sort >> $GITHUB_STEP_SUMMARY
+          echo "| Native Binary | Size (KB) |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          find results/native -type f | sort | while read bin ; do
+            SIZE=$(ls -sk "$bin" | cut -d' ' -f1)
+            echo "| $bin | $SIZE |"
+          done >> $GITHUB_STEP_SUMMARY
 
   release:
     name: Release
