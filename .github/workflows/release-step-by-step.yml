@@ -341,6 +341,7 @@ jobs:
         run: |
           echo "### Build Results for Version ${{ needs.prepare.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "#### JARs" >> $GITHUB_STEP_SUMMARY
+          echo "| JARs | Size (KB) |" >> $GITHUB_STEP_SUMMARY
           find results/jars -name "*.jar" -type f | sort | while read jar ; do
             SIZE=$(ls -sk "$jar" | cut -d' ' -f1)
             echo "| $jar | $SIZE |"
