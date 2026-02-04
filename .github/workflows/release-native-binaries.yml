@@ -12,6 +12,8 @@ jobs:
   build-native:
     name: Build Native Binaries
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v6
         with:
