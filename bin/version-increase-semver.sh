@@ -60,7 +60,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 CURRENT_VERSION=$("$SCRIPT_DIR"/version-get.sh)
-LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+LATEST_TAG=$(git tag --sort=-v:refname | head -n 1)
+if [ -z "$LATEST_TAG" ]; then
+    LATEST_TAG="v0.0.0"
+fi
 
 # Split version into components
 IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"

@@ -37,7 +37,7 @@ done
 # Default to the version from pom.xml if no tags found
 get_base_version() {
     local LATEST_TAG
-    LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+    LATEST_TAG=$(git tag --sort=-v:refname | head -n 1)
     if [ -n "$LATEST_TAG" ]; then
         echo "${LATEST_TAG#v}"
     else
