@@ -394,6 +394,8 @@ jobs:
     if: needs.prepare.outputs.trigger_native == 'true'
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v6
+
       - name: Trigger Release Native Binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -424,9 +426,6 @@ jobs:
           echo "Next snapshot: $NEXT_SNAPSHOT"
           ./bin/version-set-snapshot.sh $NEXT_SNAPSHOT
 
-      - name: Push new version
-        id: version_push
-        run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
