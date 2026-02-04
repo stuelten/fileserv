@@ -344,7 +344,7 @@ jobs:
 
   release:
     name: Release
-    needs: [ prepare, create-release-branch, build-java, build-java-shaded-jars, quick-tests-bash, quick-tests-mvn, report-results ]
+    needs: [ prepare, create-release-branch, build-java, build-java-shaded-jars, quick-tests-bash, quick-tests-mvn ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -365,6 +365,7 @@ jobs:
           settings-path: ${{ github.workspace }}
 
       - name: Deploy Maven Artifacts
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./mvnw --batch-mode -s ${{ github.workspace }}/settings.xml -DskipTests deploy
