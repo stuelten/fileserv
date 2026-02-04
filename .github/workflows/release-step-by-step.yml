@@ -443,7 +443,7 @@ jobs:
       - name: Deploy Maven Artifacts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./mvnw --batch-mode -s ${{ github.workspace }}/settings.xml -DskipTests -Pshaded-jar deploy
+        run: ./mvnw --batch-mode -s ${{ github.workspace }}/settings.xml -DskipTests deploy
 
       - name: Download JARs
         uses: actions/download-artifact@v7
