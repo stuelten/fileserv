@@ -101,7 +101,7 @@ jobs:
       - name: Build with Maven
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./mvnw --batch-mode -s ${{ github.workspace }}/settings.xml -DskipTests deploy
+        run: ./mvnw --batch-mode -s ${{ github.workspace }}/settings.xml -DskipTests package
 
       - name: Upload JARs
         uses: actions/upload-artifact@v6
@@ -152,7 +152,7 @@ jobs:
       - name: Build with Maven
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./mvnw --batch-mode -s ${{ github.workspace }}/settings.xml -DskipTests -Pshaded-jar deploy
+        run: ./mvnw --batch-mode -s ${{ github.workspace }}/settings.xml -DskipTests -Pshaded-jar package
 
       - name: Upload JARs
         uses: actions/upload-artifact@v6
@@ -424,11 +424,26 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: write
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           ref: release-v${{ needs.prepare.outputs.version }}
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+          server-id: github
+          settings-path: ${{ github.workspace }}
+
+      - name: Deploy Maven Artifacts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./mvnw --batch-mode -s ${{ github.workspace }}/settings.xml -DskipTests -Pshaded-jar deploy
 
       - name: Download JARs
         uses: actions/download-artifact@v7
