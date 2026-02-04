@@ -7,7 +7,7 @@
     <parent>
         <groupId>de.sty</groupId>
         <artifactId>fileserv-parent</artifactId>
-        <version>0.6.0-SNAPSHOT</version>
+        <version>0.5.6</version>
     </parent>
 
     <artifactId>fileserv-auth-ldap</artifactId>
