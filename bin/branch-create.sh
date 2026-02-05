@@ -93,13 +93,9 @@ log "Creating branch $BRANCH_NAME..."
 if [ "$DRY_RUN" = true ]; then
     echo "Dry run: git checkout -b $BRANCH_NAME"
     echo "Dry run: git push origin $BRANCH_NAME"
-    echo "Dry run: gh pr create --title \"$ISSUE_TITLE\" --body \"Closes #$ISSUE_NUMBER\""
 else
     git config --global user.name "GitHub Actions"
     git config --global user.email "actions@github.com"
     git checkout -b "$BRANCH_NAME"
     git push origin "$BRANCH_NAME"
-
-    log "Creating pull request..."
-    gh pr create --title "$ISSUE_TITLE" --body "Closes #$ISSUE_NUMBER"
 fi
