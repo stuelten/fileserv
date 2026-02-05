@@ -89,8 +89,7 @@ if [ "$PUSH" = true ]; then
     gh release create "$TAG" \
       "${EXISTING_ARTIFACTS[@]}" \
       --title "Version $VERSION" \
-      --notes "Automated release of version $VERSION" \
-      --overwrite
+      --notes "Automated release of version $VERSION"
   else
     warn "gh CLI not found. Skipping GitHub Release creation."
   fi
