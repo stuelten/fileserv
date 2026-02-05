@@ -1,16 +1,16 @@
-name: Release Native Binaries
+name: "Release Native Binaries"
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to build for'
+        description: "Version to build for"
         required: true
         type: string
 
 jobs:
   build-native:
-    name: Build Native Binaries
+    name: "Build Native Binaries"
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -19,7 +19,7 @@ jobs:
         with:
           ref: release-v${{ github.event.inputs.version }}
 
-      - name: Set up GraalVM
+      - name: "Set up GraalVM"
         uses: graalvm/setup-graalvm@v1
         with:
           java-version: '21'
@@ -28,20 +28,20 @@ jobs:
           native-image-job-reports: 'true'
           cache: 'maven'
 
-      - name: Build Native Binaries
+      - name: "Build Native Binaries"
         run: ./mvnw --batch-mode -DskipTests -Pnative install
 
-      - name: Upload Native Binaries
+      - name: "Upload Native Binaries"
         uses: actions/upload-artifact@v6
         with:
-          name: fileserv-native-binaries-${{ github.event.inputs.version }}
+          name: "fileserv-native-binaries-${{ github.event.inputs.version }}"
           path: |
             fileserv-app/fileserv-app/target/fileserv-app
             fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd
             fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy
             fileserv-test-webdav/target/fileserv-test-webdav
 
-      - name: Report results
+      - name: "Report results"
         run: |
           echo "### Native Binaries build:" >> $GITHUB_STEP_SUMMARY
           echo "| Native Binary | Size (KB) |" >> $GITHUB_STEP_SUMMARY
@@ -57,7 +57,7 @@ jobs:
             fi
           done >> $GITHUB_STEP_SUMMARY
 
-      - name: Upload to Release
+      - name: "Upload to Release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

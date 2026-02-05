@@ -1,4 +1,4 @@
-name: Create Branch from Issue
+name: "Create Branch from Issue"
 
 # Trigger: Automatically on issue labeling or manually via workflow_dispatch
 on:
@@ -7,17 +7,17 @@ on:
   workflow_dispatch:
     inputs:
       issue_number:
-        description: 'Issue number to create branch for'
+        description: "Issue number to create branch for"
         required: true
       use_issue_data:
-        description: 'Use issue data (title/labels) instead of manual input'
+        description: "Use issue data (title/labels) instead of manual input"
         type: boolean
         default: true
       branch_type:
-        description: 'Manually set branch type (feature, bugfix, docs, task) (ignored if use_issue_data is true)'
+        description: "Manually set branch type (feature, bugfix, docs, task) (ignored if use_issue_data is true)"
         required: false
       branch_title:
-        description: 'Manually set branch title (ignored if use_issue_data is true)'
+        description: "Manually set branch title (ignored if use_issue_data is true)"
         required: false
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v6
 
       # Create the branch using the extracted script
-      - name: Create Branch
+      - name: "Create Branch"
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPO: ${{ github.repository }}
