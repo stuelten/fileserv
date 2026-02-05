@@ -21,7 +21,7 @@ Options:
   --dry-run             Do not actually create or push the branch.
 
 Environment Variables:
-  TOKEN                 GitHub API token (required if fetching issue data).
+  GH_TOKEN              GitHub API token (required if fetching issue data).
   GITHUB_REPO           GitHub repository in "owner/repo" format.
 
 EOF
@@ -93,9 +93,13 @@ log "Creating branch $BRANCH_NAME..."
 if [ "$DRY_RUN" = true ]; then
     echo "Dry run: git checkout -b $BRANCH_NAME"
     echo "Dry run: git push origin $BRANCH_NAME"
+    echo "Dry run: Link branch $BRANCH_NAME to issue $ISSUE_NUMBER"
 else
     git config --global user.name "GitHub Actions"
     git config --global user.email "actions@github.com"
     git checkout -b "$BRANCH_NAME"
     git push origin "$BRANCH_NAME"
+
+    log "Linking branch $BRANCH_NAME to issue $ISSUE_NUMBER..."
+    "$SCRIPT_DIR/gh-issue-comment-add.sh" "$ISSUE_NUMBER" "Branch created: $BRANCH_NAME"
 fi

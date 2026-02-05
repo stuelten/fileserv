@@ -46,6 +46,9 @@ test_branch_create() {
 
     # Test 4: Special characters in title
     assert_branch_create_dry_run "Dry run: git checkout -b feature/101-feat_req_1" --title "Feat Req #1" --labels "feature" 101
+
+    # Test 5: Linking branch (Dry run)
+    assert_branch_create_dry_run "Dry run: Link branch feature/101-feat_req_1 to issue 101" --title "Feat Req #1" --labels "feature" 101
 }
 
 test_branch_create

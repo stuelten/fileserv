@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Read data from a GitHub issue.
+# Add a comment to a GitHub issue.
 #
 
 export VERBOSE=false
@@ -14,15 +14,9 @@ source "$SCRIPT_DIR/common.sh"
 
 usage() {
     cat <<EOF
-Usage: $(basename "$0") [options] <issue-number>
+Usage: $(basename "$0") [options] <issue-number> <comment-body>
 
-Read data from a GitHub issue and print it as JSON.
-The issue number must be given as the only parameter.
-
-The API token must be set directly in the GH_TOKEN or indirectly in the GH_TOKEN_FILE
-(path to file) environment variable.
-The GITHUB_REPO environment variable can be set to the path to use
-(usually "owner/repo"). The scripts defaults to discovery via git remote.
+Add a comment to a GitHub issue.
 
 Options:
   -h, --help    Show this help message and exit.
@@ -31,12 +25,8 @@ Options:
 Environment Variables:
   GH_TOKEN      GitHub API token.
   GH_TOKEN_FILE Path to a file containing the GitHub API token.
-  GITHUB_REPO   GitHub repository in "owner/repo" format (e.g., "stuelten/fileserv").
-                If not set, it attempts to discover the repo from the git remote.
+  GITHUB_REPO   GitHub repository in "owner/repo" format.
 
-Examples:
-  GH_TOKEN=ghp_... $(basename "$0") 123
-  $(basename "$0") --json 123 | bin/gh-issue-data-field-read.sh title
 EOF
 }
 
@@ -66,47 +56,44 @@ if [[ -n "$GH_TOKEN_FILE" ]]; then
 fi
 
 if [[ -z "$GH_TOKEN" ]]; then
-    error "No GitHub GH_TOKEN provided (use GH_TOKEN or GH_TOKEN_FILE env var)"
+    error "No GitHub GH_TOKEN provided"
 fi
 
 if [[ -z "$GITHUB_REPO" ]]; then
     # Try to get repo from git remote
     REMOTE_URL=$(git_repo_get_remote_url)
     if [[ -n "$REMOTE_URL" ]]; then
-        # Handle both https and ssh formats
-        # https://github.com/owner/repo.git -> owner/repo
-        # git@github.com:owner/repo.git -> owner/repo
         GITHUB_REPO=$(echo "$REMOTE_URL" | sed -E 's|.*github.com[:/](.*)\.git|\1|')
     fi
 fi
 
-if [[ -z "$1" ]]; then
+ISSUE_NUMBER=$1
+COMMENT_BODY=$2
+
+if [[ -z "$ISSUE_NUMBER" ]]; then
     error "No issue number provided"
 fi
 
-if ! [[ "$1" =~ ^[0-9]+$ ]]; then
-    error "Issue number '$1' is not numerical"
+if [[ -z "$COMMENT_BODY" ]]; then
+    error "No comment body provided"
 fi
 
-# reads the issue via curl
-URL="https://api.github.com/repos/$GITHUB_REPO/issues/$1"
-log "Read issue $1 from $URL"
-data=$(curl -sS -H "Authorization: token $GH_TOKEN" "$URL")
+URL="https://api.github.com/repos/$GITHUB_REPO/issues/$ISSUE_NUMBER/comments"
+log "Adding comment to issue $ISSUE_NUMBER at $URL"
+
+# Create JSON payload
+PAYLOAD=$(jq -n --arg body "$COMMENT_BODY" '{body: $body}')
+
+data=$(curl -sS -X POST -H "Authorization: token $GH_TOKEN" -H "Content-Type: application/json" -d "$PAYLOAD" "$URL")
 curl_exit_code=$?
 
 if [[ $curl_exit_code -ne 0 ]]; then
     error "GitHub API call failed with exit code $curl_exit_code"
 fi
 
-if [[ -z "$data" ]]; then
-    error "Received empty response from GitHub API"
-fi
-
-# handle API errors (e.g., 404, 401) returned as JSON
 if echo "$data" | jq -e '.message' >/dev/null 2>&1; then
     msg=$(echo "$data" | jq -r '.message')
-    error "reading issue $1 from $URL: $msg"
+    error "adding comment to issue $ISSUE_NUMBER: $msg"
 fi
 
-# output result
-echo "$data"
+log "Comment added successfully"
