@@ -71,22 +71,9 @@ jobs:
 
       - name: Create and push release branch
         run: |
-          VERSION=${{ needs.prepare.outputs.version }}
-          BRANCH="release-v$VERSION"
-          
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          git checkout -b "$BRANCH"
-          
-          chmod +x bin/version-set.sh
-          ./bin/version-set.sh "$VERSION"
-          
-          git add "**/pom.xml" "pom.xml" VERSION
-          git commit -m "chore: release version $VERSION"
-          git push origin "$BRANCH" --force
-          
-          echo "### Branch: $BRANCH" >> $GITHUB_STEP_SUMMARY
+          chmod +x bin/*.sh
+          ./bin/release-branch-create.sh --push "${{ needs.prepare.outputs.version }}"
+          echo "### Branch: release-v${{ needs.prepare.outputs.version }}" >> $GITHUB_STEP_SUMMARY
 
   build-java:
     name: Build Java Parts
@@ -295,7 +282,7 @@ jobs:
       - name: Run Full Test Setup
         run: |
           chmod +x test/run-full-test.sh
-          # We need to make sure build.sh inside run-full-test.sh doesn't try to rebuild everything if possible
+          # Test without rebuilding everything
           ./test/run-full-test.sh -q --skipBuild
 
       - name: Check container logs on failure
@@ -390,18 +377,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION=${{ needs.prepare.outputs.version }}
-          
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          git tag -a "v$VERSION" -m "Version $VERSION"
-          git push origin "v$VERSION"
-          
-          gh release create "v$VERSION" --title "Version $VERSION" --notes "Automated release of version $VERSION"
+          chmod +x bin/*.sh
+          ./bin/release-tag.sh --push "${{ needs.prepare.outputs.version }}"
 
-  trigger-native-build:
-    name: Trigger Native Binaries Build
+  trigger-release-native-binaries:
+    name: "Trigger Native Binaries Release"
     needs: [ prepare, release ]
     if: needs.prepare.outputs.trigger_native == 'true'
     runs-on: ubuntu-latest
@@ -410,7 +390,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Trigger Release Native Binaries
+      - name: Trigger Workflow
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -431,18 +411,5 @@ jobs:
       - name: Bump new snapshot version
         id: version_bump
         run: |
-          chmod +x bin/version-get.sh
-          chmod +x bin/version-increase-semver.sh
-          chmod +x bin/version-set-snapshot.sh
-          echo "Current version:  $(./bin/version-get.sh)"
-
-          NEXT_SNAPSHOT=${{ needs.prepare.outputs.next_snapshot }}
-          echo "Next snapshot: $NEXT_SNAPSHOT"
-          ./bin/version-set-snapshot.sh $NEXT_SNAPSHOT
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git add "**/pom.xml" "pom.xml" VERSION
-          git commit -m "chore: Bump snapshot version to ${{ needs.prepare.outputs.next_snapshot }}" || echo "Nothing to commit"
-          git push origin main
+          chmod +x bin/*.sh
+          ./bin/release-post.sh --push "${{ needs.prepare.outputs.next_snapshot }}"

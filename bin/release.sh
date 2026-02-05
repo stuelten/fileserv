@@ -20,6 +20,8 @@ show_help() {
   echo ""
   echo "Options:"
   echo "  -h, --help    Show this help message"
+  echo "  --push        Force pushing to git (default in CI)"
+  echo "  --no-push     Disable pushing to git (default locally)"
   echo ""
   echo "Arguments:"
   echo "  major|minor   Force a major or minor version increment."
@@ -29,12 +31,22 @@ show_help() {
 # Handle options
 VERSION=""
 SEMVER_ARG=""
+PUSH_ARG="--no-push"
+[ "$GITHUB_ACTIONS" == "true" ] && PUSH_ARG="--push"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
   -h | --help)
     show_help
     exit 0
+    ;;
+  --push)
+    PUSH_ARG="--push"
+    shift
+    ;;
+  --no-push)
+    PUSH_ARG="--no-push"
+    shift
     ;;
   major | minor)
     if [ -n "$VERSION" ] || [ -n "$SEMVER_ARG" ]; then
@@ -68,21 +80,21 @@ fi
 
 log "Building and releasing version $VERSION"
 
-# 1. Update version in poms
-log "Updating Maven versions to $VERSION..."
-"$SCRIPT_DIR/version-set.sh" "$VERSION"
+# 1. Create and checkout release branch
+"$SCRIPT_DIR/release-branch-create.sh" $PUSH_ARG "$VERSION"
 
 # 2. Build project
-log "Building project with native profile..."
+log "Building project with all targets..."
 # Update path for GraalVM if JAVA_HOME is set
 if [ -n "$JAVA_HOME" ]; then
   export PATH="$JAVA_HOME/bin:$PATH"
 fi
-"$SCRIPT_DIR/build.sh" --quiet clean buildNativeBinaries
+"$SCRIPT_DIR/build.sh" --quiet clean all
 
 # 3. Verify the build output
 log "Checking build artifacts..."
 NATIVE_BINARIES=(
+  "fileserv-app/fileserv-app/target/fileserv-app"
   "fileserv-auth-file/fileserv-auth-file-smbpasswd/target/fileserv-smbpasswd"
   "fileserv-test-generate-hierarchy/target/fileserv-test-generate-hierarchy"
   "fileserv-test-webdav/target/fileserv-test-webdav"
@@ -96,31 +108,11 @@ done
 
 log "Build successful."
 
-# CI specific: Git configuration for tagging
-if [ "$GITHUB_ACTIONS" = "true" ]; then
-  git config user.name "github-actions[bot]"
-  git config user.email "github-actions[bot]@users.noreply.github.com"
-fi
+# 4. Tag and Release
+"$SCRIPT_DIR/release-tag.sh" $PUSH_ARG "$VERSION" "${NATIVE_BINARIES[@]}"
 
-# 4. Commit, tag, and push
-log "Committing version change..."
-git add "**/pom.xml" "pom.xml"
-git commit -m "chore: release version $VERSION"
-git tag -a "v$VERSION" -m "Version $VERSION"
-
-log "Pushing changes and tag..."
-git push origin main
-git push origin "v$VERSION"
-
-# 5. Create a GitHub Release
-log "Creating GitHub Release..."
-if command -v gh >/dev/null 2>&1; then
-  gh release create "v$VERSION" \
-    "${NATIVE_BINARIES[@]}" \
-    --title "Version $VERSION" \
-    --notes "Automated release of version $VERSION"
-else
-  warn "gh CLI not found. Skipping GitHub Release creation."
-fi
+# 5. Bump to next snapshot on main
+NEXT_SNAPSHOT=$(echo "$VERSION" | awk -F. '{print $1"."($2+1)".0-SNAPSHOT"}')
+"$SCRIPT_DIR/release-post.sh" $PUSH_ARG "$NEXT_SNAPSHOT"
 
 log "Release $VERSION completed successfully."

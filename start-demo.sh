@@ -8,15 +8,14 @@ source "$(dirname "$0")/bin/common.sh"
 # Ensure we are in the project root directory
 cd "$(dirname "$0")"
 
-log "Building the project (without tests)..."
-#./bin/build.sh --skipTests --skipDocker --quiet
-./mvnw -DskipTests -Pshaded-jar install
+log "Building the project (without tests) for demo..."
+./bin/build.sh --skipTests quiet java shaded-jar
 
 log "=========================================================================="
 log "Starting the application..."
 log "=========================================================================="
 
-# "Generate self-signed certificate if it doesn't exist"
+# Generate self-signed certificate if it doesn't exist
 KEYSTORE="keystore.p12"
 if [ -f "$KEYSTORE" ]; then
     log "Use certificates from $KEYSTORE"

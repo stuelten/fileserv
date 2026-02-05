@@ -148,18 +148,49 @@ You can also use:
 
 ## Development & Testing Tools
 
-### Build and Test
+#### Build and Test
 
-You can run all tests and build the project and Docker image
-using the provided `bin/build.sh` script:
+You can build the project and Docker image using the provided `bin/build.sh` script.
+While Maven is used for the Java parts,
+these scripts provide a convenient wrapper for
+building Docker images, handling native binaries, and running various test suites
+in a consistent way both locally and in CI.
 
 ```bash
-./bin/build.sh [clean]
+# Standard build (Java + Shaded JAR + Docker)
+./bin/build.sh clean java shaded-jar docker
+
+# Build everything including native binaries and Docker
+./bin/build.sh all
+
+# Build only specific parts
+./bin/build.sh java native docker
+
+# Only build Java and Shaded Jar (no Docker)
+./bin/build.sh java shaded-jar
 ```
+
+#### Local Release Testing
+
+To test the full release process locally without pushing any changes to GitHub,
+use the `bin/release.sh` script.
+This script calls several sub-scripts
+(`release-branch-create.sh`, `release-tag.sh`, `release-post.sh`)
+which are also used by GitHub Actions
+to ensure consistent behavior.
+
+```bash
+# Prepare a release locally (updates poms, builds, tags locally, NO push)
+./bin/release.sh [major|minor|VERSION]
+```
+
+By default, `bin/release.sh` will NOT push to the remote repository when run locally.
+To force a push (if you have permissions), use `--push`.
 
 ### Test Data Generator
 
-The project includes a test utility to generate random directory hierarchies for testing purposes.
+The project includes a test utility
+to generate random directory hierarchies for testing purposes.
 You can build it either as überjar/fat-jar or as a Java-based native executable.
 
 #### Java Version (Native Executable)
