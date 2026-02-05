@@ -34,7 +34,7 @@ jobs:
       # Create the branch using the extracted script
       - name: "Create Branch"
         env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPO: ${{ github.repository }}
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
