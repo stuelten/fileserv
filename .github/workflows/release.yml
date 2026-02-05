@@ -64,6 +64,7 @@ jobs:
     permissions:
       contents: write
       packages: write
+      actions: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -347,6 +348,7 @@ jobs:
     permissions:
       contents: write
       packages: write
+      actions: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -402,6 +404,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
     steps:
       - uses: actions/checkout@v6
         with:
