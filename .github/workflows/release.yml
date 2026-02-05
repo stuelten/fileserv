@@ -71,6 +71,8 @@ jobs:
           fetch-depth: 0
 
       - name: "Create and push release branch"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           chmod +x bin/*.sh
           ./bin/release-branch-create.sh --push "${{ needs.prepare.outputs.version }}"

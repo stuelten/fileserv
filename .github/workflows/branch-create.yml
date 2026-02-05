@@ -25,7 +25,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      issues: read
+      issues: write
+      pull-requests: write
     steps:
       # Check out the repository to create branches
       - uses: actions/checkout@v6
