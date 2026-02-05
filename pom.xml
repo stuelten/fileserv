@@ -6,7 +6,7 @@
 
     <groupId>de.sty</groupId>
     <artifactId>fileserv-parent</artifactId>
-    <version>0.7.0-SNAPSHOT</version>
+    <version>0.6.14</version>
     <packaging>pom</packaging>
 
     <name>fileserv-parent</name>
