@@ -89,9 +89,6 @@
     <profiles>
         <profile>
             <id>shaded-jar</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
             <build>
                 <plugins>
                     <plugin>
