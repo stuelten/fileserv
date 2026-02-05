@@ -3,7 +3,7 @@ name: "Create Branch from Issue"
 # Trigger: Automatically on issue labeling or manually via workflow_dispatch
 on:
   issues:
-    types: [labeled]
+    types: [ labeled ]
   workflow_dispatch:
     inputs:
       issue_number:

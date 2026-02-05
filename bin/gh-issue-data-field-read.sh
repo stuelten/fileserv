@@ -34,7 +34,7 @@ Input:
   Expects GitHub issue JSON data on stdin.
 
 Example:
-  bin/issue-data-read.sh --json 123 | $(basename "$0") title
+  gh-issue-data-read.sh 123 | $(basename "$0") title
 EOF
 }
 
@@ -86,7 +86,7 @@ case "$FIELD" in
         echo "$DATA" | jq -r '.assignee.login'
         ;;
     label)
-        echo "$DATA" | jq -r '.labels[0].name // ""'
+        echo "$DATA" | jq -r '.labels[].name // ""'
         ;;
     *)
         error "Unknown field '$FIELD'. Supported fields: title, state, created_at, author, assignee, label."

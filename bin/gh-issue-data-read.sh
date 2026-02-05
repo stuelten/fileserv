@@ -36,7 +36,7 @@ Environment Variables:
 
 Examples:
   TOKEN=ghp_... $(basename "$0") 123
-  $(basename "$0") --json 123 | bin/issue-data-field-read.sh title
+  $(basename "$0") --json 123 | bin/gh-issue-data-field-read.sh title
 EOF
 }
 

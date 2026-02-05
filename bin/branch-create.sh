@@ -66,21 +66,24 @@ if [[ -z "$ISSUE_NUMBER" ]]; then
     error "No issue number provided"
 fi
 
+log "Fetching data for issue $ISSUE_NUMBER..."
+ISSUE_DATA=$("$SCRIPT_DIR/gh-issue-data-read.sh" "$ISSUE_NUMBER")
+if [[ $? -ne 0 ]]; then
+    error "Failed to fetch issue data"
+fi
+
 if [[ -n "$MANUAL_TITLE" ]]; then
     ISSUE_TITLE="$MANUAL_TITLE"
+else
+    ISSUE_TITLE=$(echo "$ISSUE_DATA" | jq -r '.title')
+fi
+if [[ -n "$MANUAL_LABELS" ]]; then
     LABELS="$MANUAL_LABELS"
 else
-    log "Fetching data for issue $ISSUE_NUMBER..."
-    ISSUE_DATA=$("$SCRIPT_DIR/gh-issue-data-read.sh" --json "$ISSUE_NUMBER")
-    if [[ $? -ne 0 ]]; then
-        error "Failed to fetch issue data"
-    fi
-    ISSUE_TITLE=$(echo "$ISSUE_DATA" | jq -r '.title')
     LABELS=$(echo "$ISSUE_DATA" | jq -r '.labels[].name' | tr '\n' ',' | sed 's/,$//')
 fi
 
 BRANCH_NAME=$("$SCRIPT_DIR/branch-name-generate.sh" ${MANUAL_TYPE:+-t "$MANUAL_TYPE"} "$ISSUE_NUMBER" "$ISSUE_TITLE" "$LABELS")
-
 if [[ $? -ne 0 ]]; then
     error "Failed to generate branch name"
 fi
