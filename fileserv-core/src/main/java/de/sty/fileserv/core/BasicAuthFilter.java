@@ -2,6 +2,7 @@ package de.sty.fileserv.core;
 
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
@@ -55,22 +56,47 @@ public final class BasicAuthFilter implements Filter {
             return;
         }
 
-        chain.doFilter(request, response);
+        // Wrap the request to provide the authenticated user name
+        HttpServletRequest wrapped = new AuthenticatedRequestWrapper(req, u);
+        chain.doFilter(wrapped, response);
+    }
+
+    private static class AuthenticatedRequestWrapper extends HttpServletRequestWrapper {
+        private final String user;
+
+        public AuthenticatedRequestWrapper(HttpServletRequest request, String user) {
+            super(request);
+            this.user = user;
+        }
+
+        @Override
+        public String getRemoteUser() {
+            return user;
+        }
+
+        @Override
+        public java.security.Principal getUserPrincipal() {
+            return () -> user;
+        }
     }
 
     private boolean isExternallySecure(HttpServletRequest req) {
+        boolean result = true;
+
         // If ForwardedRequestCustomizer is enabled and proxy is trusted,
         // req.isSecure() should already reflect X-Forwarded-Proto.
-        if (req.isSecure()) return true;
-
-        if (behindProxy) {
-            String xfProto = req.getHeader(HEADER_X_FORWARDED_PROTO);
-            if (xfProto != null && xfProto.equalsIgnoreCase("https")) return true;
-
-            String forwarded = req.getHeader(HEADER_FORWARDED);
-            if (forwarded != null && forwarded.toLowerCase().contains("proto=https"))
-                return true;
+        if (!req.isSecure()) {
+            if (behindProxy) {
+                String xfProto = req.getHeader(HEADER_X_FORWARDED_PROTO);
+                if (xfProto == null || !xfProto.equalsIgnoreCase("https")) {
+                    String forwarded = req.getHeader(HEADER_FORWARDED);
+                    result = forwarded != null && forwarded.toLowerCase().contains("proto=https");
+                }
+            } else {
+                result = false;
+            }
         }
-        return false;
+
+        return result;
     }
 }
